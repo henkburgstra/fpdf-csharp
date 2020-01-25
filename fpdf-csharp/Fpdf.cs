@@ -1,4 +1,5 @@
 ﻿using FpdfCsharp.Attachments;
+using FpdfCsharp.Errors;
 using FpdfCsharp.Layers;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ namespace FpdfCsharp
 {
     public class Fpdf
     {
+		private static readonly string cnFpdfVersion = "1.7";
 		private bool isCurrentUTF8;                                             // is current font used in utf-8 mode
 		private bool isRTL;                                                     // is is right to left mode enabled
 		private int page;                                                       // current page number
@@ -101,7 +103,7 @@ namespace FpdfCsharp
 		GradientType[] gradientList;                                            // slice[idx] of gradient records
 		int clipNest;                                                           // Number of active clipping contexts
 		int transformNest;                                                      // Number of active transformation contexts
-																				//err              error                      // Set if error occurs during life cycle of instance
+		Error err = null;                                                       // Set if error occurs during life cycle of instance
 		ProtectType protect;                                                    // document protection structure
 		LayerRecType layer;                                                     // manages optional layers in document
 		bool catalogSort;                                                       // sort resource catalogs in document
@@ -117,5 +119,112 @@ namespace FpdfCsharp
 		}
 		Dictionary<string, SpotColorType> spotColorMap;                         // Map of named ink-based colors
 		double userUnderlineThickness;                                          // A custom user underline thickness multiplier.
+
+		/// <summary>
+		/// Ok returns true if no processing errors have occurred.
+		/// </summary>
+		public bool Ok()
+		{
+			return err == null;
+		}
+		/// <summary>
+		/// Err returns true if a processing error has occurred.
+		/// </summary>
+		public bool Err()
+		{
+			return err != null;
+		}
+		/// <summary>
+		/// ClearError unsets the internal Fpdf error. This method should be used with
+		/// care, as an internal error condition usually indicates an unrecoverable
+		/// problem with the generation of a document. It is intended to deal with cases
+		/// in which an error is used to select an alternate form of the document.
+		/// </summary>
+		public void ClearError()
+		{
+			err = null;
+		}
+		/// <summary>
+		/// SetErrorf sets the internal Fpdf error with formatted text to halt PDF
+		/// generation; this may facilitate error handling by application. If an error
+		/// condition is already set, this call is ignored.
+		///
+		/// See the documentation for String.Format for details
+		/// about fmtStr and args.
+		/// </summary>
+		/// <param name="fmtStr">a composite format string</param>
+		/// <param name="args">an object array that contains zero or more objects to format</param>
+		public void SetErrorf(string fmtStr, params object[] args)
+		{
+			if (err == null)
+			{
+				err = new PdfError(String.Format(fmtStr, args));
+			}
+		}
+		/// <summary>
+		/// ToString overrides base ToString
+		/// </summary>
+		/// <returns>a summary of the Fpdf instance</returns>
+		public override string ToString()
+		{
+			return $"Fpdf {cnFpdfVersion}";
+		}
+		/// <summary>
+		/// SetError sets an error to halt PDF generation. This may facilitate error
+		/// handling by application. See also Ok(), Err() and Error().
+		/// </summary>
+		public void SetError(Error err)
+		{
+			if (this.err == null && err != null)
+			{
+				this.err = err;
+			}
+		}
+
+		/// <summary>
+		/// Error returns the internal Fpdf error; this will be null if no error has occurred.
+		/// </summary>
+		public Error Error()
+		{
+			return err;
+		}
+		/// <summary>
+		/// GetPageSize returns the current page's width and height. This is the paper's
+		/// size. To compute the size of the area being used, subtract the margins (see
+		/// GetMargins()).
+		/// </summary>
+		/// <returns>(width, height)</returns>
+		public (double, double) GetPageSize()
+		{
+			return (w, h);
+		}
+		/// <summary>
+		/// GetMargins returns the left, top, right, and bottom margins. The first three
+		/// are set with the SetMargins() method. The bottom margin is set with the
+		/// SetAutoPageBreak() method.
+		/// </summary>
+		/// <returns>(left margin, top margin, right margin, bottom margin)</returns>
+		public (double, double, double, double) GetMargins()
+		{
+			return (lMargin, tMargin, rMargin, bMargin);
+		}
+		/// <summary>
+		/// SetMargins defines the left, top and right margins. By default, they equal 1 cm.
+		/// Call this method to change them. If the value of the right margin is
+		/// less than zero, it is set to the same as the left margin.
+		/// </summary>
+		/// <param name="left">left margin</param>
+		/// <param name="top">top margin</param>
+		/// <param name="right">right margin</param>
+		public void SetMargins(double left, double top, double right)
+		{
+			lMargin = left;
+			tMargin = top;
+			if (right < 0)
+			{
+				right = left;
+			}
+			rMargin = right;
+		}
 	}
 }
