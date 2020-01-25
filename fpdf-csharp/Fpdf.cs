@@ -3,6 +3,7 @@ using FpdfCsharp.Errors;
 using FpdfCsharp.Layers;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace FpdfCsharp
 {
@@ -21,7 +22,7 @@ namespace FpdfCsharp
 		private Dictionary<string, string> importedTplObjs;                     // imported template names and IDs (hashed) (gofpdi)
 		private Dictionary<string, int> importedTplIDs;                         // imported template ids hash to object id int (gofpdi)
 		private FmtBuffer buffer;                                               // buffer holding in-memory PDF
-		//pages[]*bytes.Buffer            // slice[page] of page content; 1-based
+		private BufferedStream[] pages;       //pages[]*bytes.Buffer            // slice[page] of page content; 1-based
 		private int state;                                                      // current document state
 		private bool compress;                                                  // compression flag
 		private double k;                                                       // scale factor (number of points in user unit)
@@ -226,5 +227,99 @@ namespace FpdfCsharp
 			}
 			rMargin = right;
 		}
+		/// <summary>
+		/// SetLeftMargin defines the left margin. The method can be called before
+		/// creating the first page. If the current abscissa gets out of page, it is
+		/// brought back to the margin.
+		/// </summary>
+		/// <param name="margin">left margin</param>
+		public void SetLeftMargin(double margin)
+		{
+			lMargin = margin;
+			if (page > 0 && x < margin)
+			{
+				x = margin;
+			}
+		}
+
+		/// <summary>
+		/// SetPageBoxRec sets the page box for the current page, and any following
+		/// pages. Allowable types are trim, trimbox, crop, cropbox, bleed, bleedbox,
+		/// art and artbox box types are case insensitive. See SetPageBox() for a method
+		/// that specifies the coordinates and extent of the page box individually.
+		/// </summary>
+		/// <param name="t">type name</param>
+		/// <param name="pb"></param>
+		public void SetPageBoxRec(string t, PageBox pb)
+		{
+			switch (t.ToLower()) {
+				case "trim":
+				case "trimbox":
+					t = "TrimBox";
+					break;
+				case "crop":
+				case "cropbox":
+					t = "CropBox";
+					break;
+				case "bleed":
+				case "bleedbox":
+					t = "BleedBox";
+					break;
+				case "art":
+				case "artbox":
+					t = "ArtBox";
+					break;
+				default:
+					err = new PdfError($"{t} is not a valid page box type");
+					return;
+			}
+			pb.Point.X *= k;
+			pb.Point.Y *= k;
+			pb.Size.Wd = (pb.Size.Wd * k) + pb.Point.X;
+			pb.Size.Ht = (pb.Size.Ht * k) + pb.Point.Y;
+
+			if (page > 0) 
+			{
+				pageBoxes[page][t] = pb;
+			}
+
+			// always override. page defaults are supplied in addPage function
+			defPageBoxes[t] = pb;
+
+		}
+		/// <summary>
+		/// SetPageBox sets the page box for the current page, and any following pages.
+		/// Allowable types are trim, trimbox, crop, cropbox, bleed, bleedbox, art and
+		/// artbox box types are case insensitive.
+		//// </summary>
+		public void SetPageBox(string t, double x, double y, double wd, double ht)
+		{
+			SetPageBoxRec(t, new PageBox
+			{
+				Point = new PointType { X = x, Y = y },
+				Size = new SizeType { Wd = wd, Ht = ht }
+			});
+		}
+		/// <summary>
+		/// SetPage sets the current page to that of a valid page in the PDF document.
+		/// pageNum is one-based. The SetPage() example demonstrates this method.
+		/// </summary>
+		/// <param name="pageNum">one-based</param>
+		public void SetPage(int pageNum)
+		{
+			if ((pageNum > 0) && (pageNum < pages.Length))
+			{
+				page = pageNum;
+			}
+		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
+		public int PageCount()
+		{
+			return pages.Length - 1;
+		}
+
 	}
 }

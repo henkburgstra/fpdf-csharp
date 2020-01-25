@@ -11,7 +11,7 @@ namespace FpdfCsharp
     /// SizeType fields Wd and Ht specify the horizontal and vertical extents of a
     /// document element such as a page.
     /// </summary>
-    struct SizeType 
+    public struct SizeType 
     {
         public double Wd;
         public double Ht;
@@ -21,7 +21,7 @@ namespace FpdfCsharp
     /// PointType fields X and Y specify the horizontal and vertical coordinates of
     /// a point, typically used in drawing.
     /// </summary>
-    struct PointType 
+    public struct PointType 
     {
         public double X;
         public double Y;
@@ -30,10 +30,10 @@ namespace FpdfCsharp
     /// <summary>
     /// PageBox defines the coordinates and extent of the various page box types
     /// </summary>
-    struct PageBox 
+    public struct PageBox 
     {
-        public SizeType SizeType;
-        public PointType PointType;
+        public SizeType Size;
+        public PointType Point;
     }
 
     /// <summary>
