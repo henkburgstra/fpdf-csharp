@@ -10,6 +10,7 @@ namespace FpdfCsharp
     public class Fpdf
     {
 		private static readonly string cnFpdfVersion = "1.7";
+		private static Gl gl = new Gl();
 		private bool isCurrentUTF8;                                             // is current font used in utf-8 mode
 		private bool isRTL;                                                     // is is right to left mode enabled
 		private int page;                                                       // current page number
@@ -320,6 +321,202 @@ namespace FpdfCsharp
 		{
 			return pages.Length - 1;
 		}
+		/// <summary>
+		/// SetFontLocation sets the location in the file system of the font and font
+		/// definition files.
+		/// </summary>
+		public void SetFontLocation(string fontDirStr)
+		{
+			fontpath = fontDirStr;
+		}
+		/// <summary>
+		/// SetFontLoader sets a loader used to read font files (.json and .z) from an
+		/// arbitrary source. If a font loader has been specified, it is used to load
+		/// the named font resources when AddFont() is called. If this operation fails,
+		/// an attempt is made to load the resources from the configured font directory
+		/// (see SetFontLocation()).
+		/// </summary>
+		public void SetFontLoader(FontLoader loader)
+		{
+			fontLoader = loader;
+		}
+		/// <summary>
+		/// SetHeaderFuncMode sets the function that lets the application render the
+		/// page header. See SetHeaderFunc() for more details. The value for homeMode
+		/// should be set to true to have the current position set to the left and top
+		/// margin after the header function is called.
+		/// </summary>
+		public void SetHeaderFuncMode(Action fnc, bool homeMode)
+		{
+			headerFnc = fnc;
+			headerHomeMode = homeMode;
+		}
+		/// <summary>
+		/// SetHeaderFunc sets the function that lets the application render the page
+		/// header. The specified function is automatically called by AddPage() and
+		/// should not be called directly by the application. The implementation in Fpdf
+		/// is empty, so you have to provide an appropriate function if you want page
+		/// headers. fnc will typically be a closure that has access to the Fpdf
+		/// instance and other document generation variables.
+		///
+		/// A header is a convenient place to put background content that repeats on
+		/// each page such as a watermark. When this is done, remember to reset the X
+		/// and Y values so the normal content begins where expected. Including a
+		/// watermark on each page is demonstrated in the example for TransformRotate.
+		///
+		/// This method is demonstrated in the example for AddPage().
+		/// </summary>
+		public void SetHeaderFunc(Action fnc)
+		{
+			headerFnc = fnc;
+		}
+		/// <summary>
+		/// SetFooterFunc sets the function that lets the application render the page
+		/// footer. The specified function is automatically called by AddPage() and
+		/// Close() and should not be called directly by the application. The
+		/// implementation in Fpdf is empty, so you have to provide an appropriate
+		/// function if you want page footers. fnc will typically be a closure that has
+		/// access to the Fpdf instance and other document generation variables. See
+		/// SetFooterFuncLpi for a similar function that passes a last page indicator.
+		///
+		/// This method is demonstrated in the example for AddPage().
+		/// </summary>
+		public void SetFooterFunc(Action fnc)
+		{
+			footerFnc = fnc;
+		}
+		/// <summary>
+		/// SetFooterFuncLpi sets the function that lets the application render the page
+		/// footer. The specified function is automatically called by AddPage() and
+		/// Close() and should not be called directly by the application. It is passed a
+		/// boolean that is true if the last page of the document is being rendered. The
+		/// implementation in Fpdf is empty, so you have to provide an appropriate
+		/// function if you want page footers. fnc will typically be a closure that has
+		/// access to the Fpdf instance and other document generation variables.
+		/// </summary>
+		public void SetFooterFuncLpi(Action<bool> fnc)
+		{
+			footerFncLpi = fnc;
+			footerFnc = null;
+		}
+		/// <summary>
+		/// SetTopMargin defines the top margin. The method can be called before
+		/// creating the first page.
+		/// </summary>
+		public void SetTopMargin(double margin)
+		{
+			tMargin = margin;
+		}
+		/// <summary>
+		/// SetRightMargin defines the right margin. The method can be called before
+		/// creating the first page.
+		/// </summary>
+		public void SetRightMargin(double margin)
+		{
+			rMargin = margin;
+		}
+		/// <summary>
+		/// GetAutoPageBreak returns true if automatic pages breaks are enabled, false
+		/// otherwise. This is followed by the triggering limit from the bottom of the
+		/// page. This value applies only if automatic page breaks are enabled.
+		/// </summary>
+		/// <returns>(bool autoPageBreak, double bottomMargin)</returns>
+		public (bool, double) GetAutoPageBreak()
+		{
+			return (autoPageBreak, bMargin);
+		}
+		/// <summary>
+		/// SetAutoPageBreak enables or disables the automatic page breaking mode. When
+		/// enabling, the second parameter is the distance from the bottom of the page
+		/// that defines the triggering limit. By default, the mode is on and the margin
+		/// is 2 cm.
+		/// </summary>
+		public void SetAutoPageBreak(bool auto, double margin)
+		{
+			autoPageBreak = auto;
+			bMargin = margin;
+			pageBreakTrigger = h - margin;
+		}
+		/// <summary>
+		/// SetDisplayMode sets advisory display directives for the document viewer.
+		/// Pages can be displayed entirely on screen, occupy the full width of the
+		/// window, use real size, be scaled by a specific zooming factor or use viewer
+		/// default (configured in the Preferences menu of Adobe Reader). The page
+		/// layout can be specified so that pages are displayed individually or in
+		/// pairs.
+		///
+		/// zoomStr can be "fullpage" to display the entire page on screen, "fullwidth"
+		/// to use maximum width of window, "real" to use real size (equivalent to 100%
+		/// zoom) or "default" to use viewer default mode.
+		///
+		/// layoutStr can be "single" (or "SinglePage") to display one page at once,
+		/// "continuous" (or "OneColumn") to display pages continuously, "two" (or
+		/// "TwoColumnLeft") to display two pages on two columns with odd-numbered pages
+		/// on the left, or "TwoColumnRight" to display two pages on two columns with
+		/// odd-numbered pages on the right, or "TwoPageLeft" to display pages two at a
+		/// time with odd-numbered pages on the left, or "TwoPageRight" to display pages
+		/// two at a time with odd-numbered pages on the right, or "default" to use
+		/// viewer default mode.
+		/// </summary>
+		/// <param name="zoomStr"></param>
+		/// <param name="layoutStr"></param>
+		public void SetDisplayMode(string zoomStr, string layoutStr)
+		{
+			if (err != null)
+			{
+				return;
+			}
+			switch (zoomStr) 
+			{
+				case "fullpage":
+				case "fullwidth":
+				case "real":
+				case "default":
+					zoomMode = zoomStr;
+					break;
+				default:
+					err = new PdfError($"incorrect zoom display mode: {zoomStr}");
+					return;
+			}
+			switch (layoutStr)
+			{
+				case "single":
+				case "continuous":
+				case "two":
+				case "default":
+				case "SinglePage":
+				case "OneColumn":
+				case "TwoColumnLeft":
+				case "TwoColumnRight":
+				case "TwoPageLeft":
+				case "TwoPageRight":
+					layoutMode = layoutStr;
+					break;
+				default:
+					err = new PdfError($"incorrect layout display mode: {layoutStr}");
+					return;
+			}
+		}
+		/// <summary>
+		/// SetDefaultCompression controls the default setting of the internal
+		/// compression flag. See SetCompression() for more details. Compression is on
+		/// by default.
+		/// </summary>
+		public void SetDefaultCompression(bool compress)
+		{
+			gl.noCompress = !compress;
+		}
+		/// <summary>
+		/// SetCompression activates or deactivates page compression with zlib. When
+		/// activated, the internal representation of each page is compressed, which
+		/// leads to a compression ratio of about 2 for the resulting document.
+		/// Compression is on by default.
+		/// </summary>
+		public void SetCompression(bool compress)
+		{
+			this.compress = compress;
+		}
+
 
 	}
 }

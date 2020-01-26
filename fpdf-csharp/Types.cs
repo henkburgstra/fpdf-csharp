@@ -246,6 +246,13 @@ namespace FpdfCsharp
         byte y;
         byte k; // 0% to 100%
     }
-
+    // Global ??
+    struct Gl 
+    {
+        public bool catalogSort;
+        public bool noCompress;  // Initial false value indicaties compression
+        public DateTime creationDate;
+        public DateTime modDate;
+    }
 
 }
