@@ -39,78 +39,78 @@ namespace FpdfCsharp
 		private double hPt;                                                     // dimensions of current page in points
 		private double w;                                                       // dimensions of current page in user unit
 		private double h;                                                       // dimensions of current page in user unit
-		double lMargin;                                                         // left margin
-		double tMargin;                                                         // top margin
-		double rMargin;                                                         // right margin
-		double bMargin;                                                         // page break margin
-		double cMargin;                                                         // cell margin
-		double x;                                                               // current position in user unit
-		double y;                                                               // current position in user unit
-		double lasth;                                                           // height of last printed cell
-		double lineWidth;                                                       // line width in user unit
-		string fontpath;                                                        // path containing fonts
-		FontLoader fontLoader;                                                  // used to load font files from arbitrary locations
-		Dictionary<string, bool> coreFonts;                                     // array of core font names
-		Dictionary<string, FontDefType> fonts;                                  // array of used fonts
-		Dictionary<string, FontFileType> fontFiles;                             // array of font files
-		string[] diffs;                                                         // array of encoding differences
-		string fontFamily;                                                      // current font family
-		string fontStyle;                                                       // current font style
-		bool underline;                                                         // underlining flag
-		bool strikeout;                                                         // strike out flag
-		FontDefType currentFont;                                                // current font info
-		double fontSizePt;                                                      // current font size in points
-		double fontSize;                                                        // current font size in user unit
-		double ws;                                                              // word spacing
-		Dictionary<string, ImageInfoType> images;                               // array of used images
-		Dictionary<string, string> aliasMap;                                    // map of alias->replacement
-		LinkType[][] pageLinks;                                                 // pageLinks[page][link], both 1-based
-		IntLinkType[] links;                                                    // array of internal links
-		Attachment[] attachments;                                               // slice of content to embed globally
-		AnnotationAttach[] pageAttachments;                                     // 1-based array of annotation for file attachments (per page)
-		OutlineType[] outlines;                                                 // array of outlines
-		int outlineRoot;                                                        // root of outlines
-		bool autoPageBreak;                                                     // automatic page breaking
-		//acceptPageBreak  func() bool                // returns true to accept page break
-		double pageBreakTrigger;                                                // threshold used to trigger page breaks
-		bool inHeader;                                                          // flag set when processing header
-																				//headerFnc        func()                     // function provided by app and called to write header
-		bool headerHomeMode;                                                    // set position to home after headerFnc is called
-		bool inFooter;                                                          // flag set when processing footer
-																				//footerFnc        func()                     // function provided by app and called to write footer
-																				//footerFncLpi func(bool)                 // function provided by app and called to write footer with last page flag
-		string zoomMode;                                                        // zoom display mode
-		string layoutMode;                                                      // layout display mode
-		byte[] xmp;                                                             // XMP metadata
-		string producer;                                                        // producer
-		string title;                                                           // title
-		string subject;                                                         // subject
-		string author;                                                          // author
-		string keywords;                                                        // keywords
-		string creator;                                                         // creator
-		DateTime creationDate; //     time.Time                  // override for document CreationDate value
-		DateTime modDate; //          time.Time                  // override for document ModDate value
-		string aliasNbPagesStr;                                                 // alias for total number of pages
-		string pdfVersion;                                                      // PDF version number
-		string fontDirStr;                                                      // location of font definition files
-		int capStyle;                                                           // line cap style: butt 0, round 1, square 2
-		int joinStyle;                                                          // line segment join style: miter 0, round 1, bevel 2
-		double[] dashArray;                                                     // dash array
-		double dashPhase;                                                       // dash phase
-		BlendModeType[] blendList;                                              // slice[idx] of alpha transparency modes, 1-based
-		Dictionary<string, int> blendMap;                                       // map into blendList
-		string blendMode;                                                       // current blend mode
-		double alpha;                                                           // current transpacency
-		GradientType[] gradientList;                                            // slice[idx] of gradient records
-		int clipNest;                                                           // Number of active clipping contexts
-		int transformNest;                                                      // Number of active transformation contexts
-		Error err = null;                                                       // Set if error occurs during life cycle of instance
-		ProtectType protect;                                                    // document protection structure
-		LayerRecType layer;                                                     // manages optional layers in document
-		bool catalogSort;                                                       // sort resource catalogs in document
-		int nJs;                                                                // JavaScript object number
-		string javascript; // javascript* string                    // JavaScript code to include in the PDF
-		bool colorFlag;                                                         // indicates whether fill and text colors are different
+		private double lMargin;                                                 // left margin
+		private double tMargin;                                                 // top margin
+		private double rMargin;                                                 // right margin
+		private double bMargin;                                                 // page break margin
+		private double cMargin;                                                 // cell margin
+		private double x;                                                       // current position in user unit
+		private double y;                                                       // current position in user unit
+		private double lasth;                                                   // height of last printed cell
+		private double lineWidth;                                               // line width in user unit
+		private string fontpath;                                                // path containing fonts
+		private FontLoader fontLoader;                                          // used to load font files from arbitrary locations
+		private Dictionary<string, bool> coreFonts;                             // array of core font names
+		private Dictionary<string, FontDefType> fonts;                          // array of used fonts
+		private Dictionary<string, FontFileType> fontFiles;                     // array of font files
+		private string[] diffs;                                                 // array of encoding differences
+		private string fontFamily;                                              // current font family
+		private string fontStyle;                                               // current font style
+		private bool underline;                                                 // underlining flag
+		private bool strikeout;                                                 // strike out flag
+		private FontDefType currentFont;                                        // current font info
+		private double fontSizePt;                                              // current font size in points
+		private double fontSize;                                                // current font size in user unit
+		private double ws;                                                      // word spacing
+		private Dictionary<string, ImageInfoType> images;                       // array of used images
+		private Dictionary<string, string> aliasMap;                            // map of alias->replacement
+		private LinkType[][] pageLinks;                                         // pageLinks[page][link], both 1-based
+		private IntLinkType[] links;                                            // array of internal links
+		private Attachment[] attachments;                                       // slice of content to embed globally
+		private AnnotationAttach[] pageAttachments;                             // 1-based array of annotation for file attachments (per page)
+		private OutlineType[] outlines;                                         // array of outlines
+		private int outlineRoot;                                                // root of outlines
+		private bool autoPageBreak;                                             // automatic page breaking
+		private Func<bool> acceptPageBreak;                                     // returns true to accept page break
+		private double pageBreakTrigger;                                        // threshold used to trigger page breaks
+		private bool inHeader;                                                  // flag set when processing header
+		private Action headerFnc;                                               // function provided by app and called to write header
+		private bool headerHomeMode;                                            // set position to home after headerFnc is called
+		private bool inFooter;                                                  // flag set when processing footer
+		private Action footerFnc;                                               // function provided by app and called to write footer
+		private Action<bool> footerFncLpi;                                      // function provided by app and called to write footer with last page flag
+		private string zoomMode;                                                // zoom display mode
+		private string layoutMode;                                              // layout display mode
+		private byte[] xmp;                                                     // XMP metadata
+		private string producer;                                                // producer
+		private string title;                                                   // title
+		private string subject;                                                 // subject
+		private string author;                                                  // author
+		private string keywords;                                                // keywords
+		private string creator;                                                 // creator
+		private DateTime creationDate; //     time.Time                  // override for document CreationDate value
+		private DateTime modDate; //          time.Time                  // override for document ModDate value
+		private string aliasNbPagesStr;                                         // alias for total number of pages
+		private string pdfVersion;                                              // PDF version number
+		private string fontDirStr;                                              // location of font definition files
+		private int capStyle;                                                   // line cap style: butt 0, round 1, square 2
+		private int joinStyle;                                                  // line segment join style: miter 0, round 1, bevel 2
+		private double[] dashArray;                                             // dash array
+		private double dashPhase;                                               // dash phase
+		private BlendModeType[] blendList;                                      // slice[idx] of alpha transparency modes, 1-based
+		private Dictionary<string, int> blendMap;                               // map into blendList
+		private string blendMode;                                               // current blend mode
+		private double alpha;                                                   // current transpacency
+		private GradientType[] gradientList;                                    // slice[idx] of gradient records
+		private int clipNest;                                                   // Number of active clipping contexts
+		private int transformNest;                                              // Number of active transformation contexts
+		private Error err = null;                                               // Set if error occurs during life cycle of instance
+		private ProtectType protect;                                            // document protection structure
+		private LayerRecType layer;                                             // manages optional layers in document
+		private bool catalogSort;                                               // sort resource catalogs in document
+		private int nJs;                                                        // JavaScript object number
+		private string javascript; // javascript* string                   // JavaScript code to include in the PDF
+		private bool colorFlag;                                                 // indicates whether fill and text colors are different
 		struct color
 		{
 			// Composite values of colors
@@ -118,8 +118,8 @@ namespace FpdfCsharp
 			ColorType fill;
 			ColorType text;
 		}
-		Dictionary<string, SpotColorType> spotColorMap;                         // Map of named ink-based colors
-		double userUnderlineThickness;                                          // A custom user underline thickness multiplier.
+		private Dictionary<string, SpotColorType> spotColorMap;                 // Map of named ink-based colors
+		private double userUnderlineThickness;                                  // A custom user underline thickness multiplier.
 
 		/// <summary>
 		/// Ok returns true if no processing errors have occurred.
