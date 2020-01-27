@@ -1,6 +1,7 @@
 ﻿using FpdfCsharp.Attachments;
 using FpdfCsharp.Errors;
 using FpdfCsharp.Layers;
+using FpdfCsharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -516,7 +517,211 @@ namespace FpdfCsharp
 		{
 			this.compress = compress;
 		}
+		/// <summary>
+		/// SetProducer defines the producer of the document. isUTF8 indicates if the string
+		/// is encoded in ISO-8859-1 (false) or UTF-8 (true).
+		/// </summary>
+		public void SetProducer(string producerStr, bool isUTF8)
+		{
+			if (isUTF8)
+			{
+				producerStr = Util.Utf8ToUtf16(producerStr);
+			}
+			this.producer = producerStr;
+		}
 
+		/// <summary>
+		/// SetTitle defines the title of the document. isUTF8 indicates if the string
+		/// is encoded in ISO-8859-1 (false) or UTF-8 (true).
+		/// </summary>
+		public void SetTitle(string titleStr, bool isUTF8)
+		{
+			if (isUTF8) 
+			{
+				titleStr = Util.Utf8ToUtf16(titleStr);
+			}
+			this.title = titleStr;
+		}
+		/// <summary>
+		/// SetSubject defines the subject of the document. isUTF8 indicates if the
+		/// string is encoded in ISO-8859-1 (false) or UTF-8 (true).
+		/// </summary>
+		public void SetSubject(string subjectStr, bool isUTF8)
+		{
+			if (isUTF8) 
+			{
+				subjectStr = Util.Utf8ToUtf16(subjectStr);
+			}
+			this.subject = subjectStr;
+		}
+		/// <summary>
+		/// SetAuthor defines the author of the document. isUTF8 indicates if the string
+		/// is encoded in ISO-8859-1 (false) or UTF-8 (true).
+		/// </summary>
+		public void SetAuthor(string authorStr, bool isUTF8)
+		{
+			if (isUTF8) 
+			{
+				authorStr = Util.Utf8ToUtf16(authorStr);
+			}
+			this.author = authorStr;
+		}
+		/// <summary>
+		/// SetKeywords defines the keywords of the document. keywordStr is a
+		/// space-delimited string, for example "invoice August". isUTF8 indicates if
+		/// the string is encoded
+		/// </summary>
+		public void SetKeywords(string keywordsStr, bool isUTF8)
+		{
+			if (isUTF8) 
+			{
+				keywordsStr = Util.Utf8ToUtf16(keywordsStr);
+			}
+			this.keywords = keywordsStr;
+		}
+		/// <summary>
+		/// SetCreator defines the creator of the document. isUTF8 indicates if the
+		/// string is encoded in ISO-8859-1 (false) or UTF-8 (true).
+		/// </summary>
+		public void SetCreator(string creatorStr, bool isUTF8)
+		{
+			if (isUTF8) 
+			{
+				creatorStr = Util.Utf8ToUtf16(creatorStr);
+			}
+			this.creator = creatorStr;
+		}
+		/// <summary>
+		/// SetXmpMetadata defines XMP metadata that will be embedded with the document.
+		/// </summary>
+		public void SetXmpMetadata(byte[] xmpStream)
+		{
+			this.xmp = xmpStream;
+		}
+		/// <summary>
+		/// AliasNbPages defines an alias for the total number of pages. It will be
+		/// substituted as the document is closed. An empty string is replaced with the
+		/// string "{nb}".
+		///
+		/// See the example for AddPage() for a demonstration of this method.
+		/// </summary>
+		public void AliasNbPages(string aliasStr)
+		{
+			if (string.IsNullOrEmpty(aliasStr)) 
+			{
+				aliasStr = "{nb}";
+			}
+			this.aliasNbPagesStr = aliasStr;
+		}
+		/// <summary>
+		/// RTL enables right-to-left mode
+		/// </summary>
+		public void RTL()
+		{
+			this.isRTL = true;
+		}
+		/// <summary>
+		/// LTR disables right-to-left mode
+		/// </summary>
+		public void LTR()
+		{
+			this.isRTL = false;
+		}
+		/// <summary>
+		/// open begins a document
+		/// </summary>
+		private void open()
+		{
+			this.state = 1;
+		}
+		/// <summary>
+		/// Close terminates the PDF document. It is not necessary to call this method
+		/// explicitly because Output(), OutputAndClose() and OutputFileAndClose() do it
+		/// automatically. If the document contains no page, AddPage() is called to
+		/// prevent the generation of an invalid document.
+		/// </summary>
+		public void Close()
+		{
+			if (this.err == null) 
+			{
+				if (this.clipNest > 0) 
+				{
+					this.err = new PdfError("clip procedure must be explicitly ended");
+				}
+				else if (this.transformNest > 0) 
+				{
+					this.err = new PdfError("transformation procedure must be explicitly ended");
+	  			}
+			}
+			if (this.err != null) 
+			{
+				return;
+			}
+			if (this.state == 3) 
+			{
+				return;
+			}
+			if (this.page == 0) 
+			{
+				AddPage();
+				if (this.err != null) 
+				{
+					return;
+				}
+			}
+			// Page footer
+			this.inFooter = true;
+	   		if (this.footerFnc != null) 
+			{
+				this.footerFnc();
+			}
+			else if (this.footerFncLpi != null) 
+			{
+				this.footerFncLpi(true);
+	  		}
+			this.inFooter = false;
+
+			// Close page
+			this.endpage();
+			// Close document
+			this.enddoc();
+			return;
+		}
+		/// <summary>
+		/// PageSize returns the width and height of the specified page in the units
+		/// established in New(). These return values are followed by the unit of
+		/// measure itself. If pageNum is zero or otherwise out of bounds, it returns
+		/// the default page size, that is, the size of the page that would be added by
+		/// AddPage().
+		/// </summary>
+		/// <returns>double wd, double ht, string unitStr</returns>
+		public (double wd, double ht, string unitStr) PageSize(int pageNum) 
+		{
+			if (this.pageSizes.TryGetValue(pageNum, out SizeType sz))
+			{
+				sz.Wd /= this.k;
+				sz.Ht /= this.k;
+			}
+			else
+			{
+				sz = this.defPageSize;
+			}
+			return (sz.Wd, sz.Ht, this.unitStr);
+		}
+
+
+		private void endpage()
+		{
+			// TODO
+		}
+		private void enddoc()
+		{
+			// TODO
+		}
+		public void AddPage()
+		{
+			// TODO
+		}
 
 	}
 }
