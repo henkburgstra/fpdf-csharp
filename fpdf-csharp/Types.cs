@@ -254,5 +254,12 @@ namespace FpdfCsharp
         public DateTime creationDate;
         public DateTime modDate;
     }
+    struct Color
+    {
+        // Composite values of colors
+        public ColorType draw;
+        public ColorType fill;
+        public ColorType text;
+    }
 
 }
