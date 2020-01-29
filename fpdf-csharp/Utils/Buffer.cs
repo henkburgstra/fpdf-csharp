@@ -10,13 +10,9 @@ namespace FpdfCsharp.Utils
         private MemoryStream stream;
         private StreamReader reader;
         private StreamWriter writer;
-        private long readPos;
-        private long writePos;
 
         private void Init()
         {
-            this.readPos = stream.Position;
-            this.writePos = stream.Position;
             this.reader = new StreamReader(stream);
             this.writer = new StreamWriter(stream);
         }
@@ -24,6 +20,7 @@ namespace FpdfCsharp.Utils
         public Buffer()
         {
             stream = new MemoryStream();
+            Init();
         }
 
         public void Write(byte[] data)
@@ -32,10 +29,36 @@ namespace FpdfCsharp.Utils
             stream.Write(data, 0, data.Length);
         }
 
+        public void WriteByte(byte data)
+        {
+            stream.Seek(0, SeekOrigin.End);
+            stream.WriteByte(data);
+        }
+
         public void WriteString(string data)
         {
             stream.Seek(0, SeekOrigin.End);
             writer.Write(data);
+        }
+        
+        public int Read()
+        {
+            return reader.Read();
+        }
+        public void ReadFrom(Buffer buf)
+        {
+            buf.Seek(0, SeekOrigin.Begin);
+            var read = buf.Read();
+            while (read != -1)
+            {
+                WriteByte((byte)read);
+                read = buf.Read();
+            }
+        }
+
+        public long Seek(long offset, SeekOrigin loc)
+        {
+            return stream.Seek(offset, loc);
         }
     }
 }
