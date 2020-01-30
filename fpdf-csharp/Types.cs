@@ -58,12 +58,12 @@ namespace FpdfCsharp
 
     struct FontFileType
     {
-        Int64 length1;
-        Int64 length2;
-        int n;
-        bool embedded;
-        byte[] content;
-        string fontType;
+        public Int64 length1;
+        public Int64 length2;
+        public int n;
+        public bool embedded;
+        public byte[] content;
+        public string fontType;
     }
 
     // FontDescType (font descriptor) specifies metrics and other
@@ -109,21 +109,21 @@ namespace FpdfCsharp
 
     struct FontDefType
     {
-        string Tp;                        // "Core", "TrueType", ...
-        string Name;                      // "Courier-Bold", ...
-        FontDescType Desc;                // Font descriptor
-        int Up;                           // Underline position
-        int Ut;                           // Underline thickness
-        int[] Cw;                         // Character width by ordinal
-        string Enc;                       // "cp1252", ...
-        string Diff;                      // Differences from reference encoding
-        string File;                      // "Redressed.z"
-        int Size1;                        // Type1 values
-        int Size2;                        // Type1 values
-        int OriginalSize;                 // Size of uncompressed font file
-        int N;                            // Set by font loader
-        int DiffN;                        // Position of diff in app array, set by font loader
-        string i;                         // 1-based position in font list, set by font loader, not this program
+        public string Tp;                        // "Core", "TrueType", ...
+        public string Name;                      // "Courier-Bold", ...
+        public FontDescType Desc;                // Font descriptor
+        public int Up;                           // Underline position
+        public int Ut;                           // Underline thickness
+        public int[] Cw;                         // Character width by ordinal
+        public string Enc;                       // "cp1252", ...
+        public string Diff;                      // Differences from reference encoding
+        public string File;                      // "Redressed.z"
+        public int Size1;                        // Type1 values
+        public int Size2;                        // Type1 values
+        public int OriginalSize;                 // Size of uncompressed font file
+        public int N;                            // Set by font loader
+        public int DiffN;                        // Position of diff in app array, set by font loader
+        public string i;                         // 1-based position in font list, set by font loader, not this program
         //utf8File* utf8FontFile // UTF-8 font
         Dictionary<int, int> usedRunes;   // Array of used runes
     }
@@ -219,16 +219,16 @@ namespace FpdfCsharp
 
     struct ColorType
     {
-        double r;
-        double g;
-        double b;
-        int ir;
-        int ig;
-        int ib;
-        ColorMode mode;
-        string spotStr;     // name of current spot color
-        bool gray;
-        string str;
+        public double r;
+        public double g;
+        public double b;
+        public int ir;
+        public int ig;
+        public int ib;
+        public ColorMode mode;
+        public string spotStr;     // name of current spot color
+        public bool gray;
+        public string str;
     }
 
     // SpotColorType specifies a named spot color value
