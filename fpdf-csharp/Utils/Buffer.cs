@@ -5,9 +5,9 @@ using System.Text;
 
 namespace FpdfCsharp.Utils
 {
-    public class Buffer
+    public class Buffer: TextReader
     {
-        private MemoryStream stream;
+        private Stream stream;
         private StreamReader reader;
         private StreamWriter writer;
 
@@ -20,6 +20,12 @@ namespace FpdfCsharp.Utils
         public Buffer()
         {
             stream = new MemoryStream();
+            Init();
+        }
+
+        public Buffer(Stream stream)
+        {
+            this.stream = stream;
             Init();
         }
 
@@ -54,6 +60,11 @@ namespace FpdfCsharp.Utils
                 WriteByte((byte)read);
                 read = buf.Read();
             }
+        }
+
+        public void ReadFrom(TextReader buf)
+        {
+            
         }
 
         public long Seek(long offset, SeekOrigin loc)
