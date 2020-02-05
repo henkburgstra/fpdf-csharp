@@ -934,33 +934,38 @@ namespace FpdfCsharp
 		}
 
 
-		// SetFont sets the font used to print character strings. It is mandatory to
-		// call this method at least once before printing text or the resulting
-		// document will not be valid.
-		//
-		// The font can be either a standard one or a font added via the AddFont()
-		// method or AddFontFromReader() method. Standard fonts use the Windows
-		// encoding cp1252 (Western Europe).
-		//
-		// The method can be called before the first page is created and the font is
-		// kept from page to page. If you just wish to change the current font size, it
-		// is simpler to call SetFontSize().
-		//
-		// Note: the font definition file must be accessible. An error is set if the
-		// file cannot be read.
-		//
-		// familyStr specifies the font family. It can be either a name defined by
-		// AddFont(), AddFontFromReader() or one of the standard families (case
-		// insensitive): "Courier" for fixed-width, "Helvetica" or "Arial" for sans
-		// serif, "Times" for serif, "Symbol" or "ZapfDingbats" for symbolic.
-		//
-		// styleStr can be "B" (bold), "I" (italic), "U" (underscore), "S" (strike-out)
-		// or any combination. The default value (specified with an empty string) is
-		// regular. Bold and italic styles do not apply to Symbol and ZapfDingbats.
-		//
-		// size is the font size measured in points. The default value is the current
-		// size. If no size has been specified since the beginning of the document, the
-		// value taken is 12.
+		/// <summary>
+		/// SetFont sets the font used to print character strings. It is mandatory to
+		/// call this method at least once before printing text or the resulting
+		/// document will not be valid.
+		///
+		/// The font can be either a standard one or a font added via the AddFont()
+		/// method or AddFontFromReader() method. Standard fonts use the Windows
+		/// encoding cp1252 (Western Europe).
+		///
+		/// The method can be called before the first page is created and the font is
+		/// kept from page to page. If you just wish to change the current font size, it
+		/// is simpler to call SetFontSize().
+		///
+		/// Note: the font definition file must be accessible. An error is set if the
+		/// file cannot be read.
+		/// </summary>
+		/// <param name="familyStr">
+		/// familyStr specifies the font family. It can be either a name defined by
+		/// AddFont(), AddFontFromReader() or one of the standard families (case
+		/// insensitive): "Courier" for fixed-width, "Helvetica" or "Arial" for sans
+		/// serif, "Times" for serif, "Symbol" or "ZapfDingbats" for symbolic.
+		/// </param>
+		/// <param name="styleStr">
+		/// styleStr can be "B" (bold), "I" (italic), "U" (underscore), "S" (strike-out)
+		/// or any combination. The default value (specified with an empty string) is
+		/// regular. Bold and italic styles do not apply to Symbol and ZapfDingbats.
+		/// </param>
+		/// <param name="size">
+		/// size is the font size measured in points. The default value is the current
+		/// size. If no size has been specified since the beginning of the document, the
+		/// value taken is 12.
+		/// </param>
 		public void SetFont(string familyStr, string styleStr, double size)
 		{
 			// dbg("SetFont x %.2f, lMargin %.2f", f.x, f.lMargin)
@@ -1057,6 +1062,54 @@ namespace FpdfCsharp
 			}
 			return;
 		}
+
+		/// <summary>
+		/// SetFontStyle sets the style of the current font. See also SetFont()
+		/// </summary>
+		public void SetFontStyle(string styleStr)
+		{
+			this.SetFont(this.fontFamily, styleStr, this.fontSizePt);
+		}
+
+		/// <summary>
+		/// SetFontSize defines the size of the current font.
+		/// </summary>
+		/// <param name="size">
+		/// Size is specified in points (1/ 72 inch). See also SetFontUnitSize().
+		/// </param>
+		public void SetFontSize(double size)
+		{
+			this.fontSizePt = size;
+			this.fontSize = size / this.k;
+	   		if (this.page > 0) 
+			{
+				this.outf("BT /F%s %.2f Tf ET", this.currentFont.i, this.fontSizePt);
+			}
+		}
+
+		// SetFontUnitSize defines the size of the current font. Size is specified in
+		// the unit of measure specified in New(). See also SetFontSize().
+		public void SetFontUnitSize(double size)
+		{
+			this.fontSizePt = size * this.k;
+			this.fontSize = size;
+	   		if (this.page > 0) 
+			{
+				this.outf("BT /F%s %.2f Tf ET", this.currentFont.i, this.fontSizePt);
+			}
+		}
+
+		/// <summary>
+		/// GetFontSize returns the size of the current font in points followed by the
+		/// size in the unit of measure specified in New(). The second value can be used
+		/// as a line height value in drawing operations.
+		/// </summary>
+		public (double ptSize, double unitSize) GetFontSize()
+		{
+			return (this.fontSizePt, this.fontSize);
+		}
+
+
 		/// <summary>
 		/// getFontKey is used by AddFontFromReader and GetFontDesc
 		/// </summary>
