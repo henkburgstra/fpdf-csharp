@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace FpdfCsharp
@@ -69,7 +71,7 @@ namespace FpdfCsharp
     // FontDescType (font descriptor) specifies metrics and other
     // attributes of a font, as distinct from the metrics of individual
     // glyphs (as defined in the pdf specification).
-    struct FontDescType
+    public struct FontDescType
     {
         // The maximum height above the baseline reached by glyphs in this
         // font (for example for "S"). The height of glyphs for accented
@@ -107,7 +109,7 @@ namespace FpdfCsharp
         int MissingWidth;
     }
 
-    struct FontDefType
+    public class FontDefType
     {
         public string Tp;                        // "Core", "TrueType", ...
         public string Name;                      // "Courier-Bold", ...
@@ -126,6 +128,21 @@ namespace FpdfCsharp
         public string i;                         // 1-based position in font list, set by font loader, not this program
         //utf8File* utf8FontFile // UTF-8 font
         Dictionary<int, int> usedRunes;   // Array of used runes
+
+
+        // generateFontID generates a font Id from the font definition
+        public string GenerateFontID() 
+        {
+            var fdt = (FontDefType)this.MemberwiseClone();
+            // file can be different if generated in different instance
+            fdt.File = "";
+            var b = JsonConvert.SerializeObject(fdt);
+            SHA1 sha = new SHA1CryptoServiceProvider();
+            var hash =sha.ComputeHash(Encoding.UTF8.GetBytes(b));
+            return BitConverter.ToString(hash).Replace("-", "");
+        }
+
+
     }
 
     /// <summary>

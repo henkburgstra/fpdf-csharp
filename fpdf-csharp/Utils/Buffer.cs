@@ -47,9 +47,14 @@ namespace FpdfCsharp.Utils
             writer.Write(data);
         }
         
-        public int Read()
+        public override int Read()
         {
             return reader.Read();
+        }
+
+        public override string ReadToEnd()
+        {
+            return base.ReadToEnd();
         }
         public void ReadFrom(Buffer buf)
         {

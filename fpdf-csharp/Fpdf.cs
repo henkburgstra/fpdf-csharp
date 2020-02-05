@@ -1,9 +1,12 @@
 ﻿using FpdfCsharp.Attachments;
+using FpdfCsharp.Embedding;
 using FpdfCsharp.Errors;
 using FpdfCsharp.Layers;
 using FpdfCsharp.Utils;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 
 namespace FpdfCsharp
@@ -23,8 +26,8 @@ namespace FpdfCsharp
 		private Dictionary<string, Dictionary<int, string>> importedObjPos;     // imported template objects hashes and their positions (gofpdi)
 		private Dictionary<string, string> importedTplObjs;                     // imported template names and IDs (hashed) (gofpdi)
 		private Dictionary<string, int> importedTplIDs;                         // imported template ids hash to object id int (gofpdi)
-		private FmtBuffer buffer;                                               // buffer holding in-memory PDF
-		private BufferedStream[] pages;       //pages[]*bytes.Buffer            // slice[page] of page content; 1-based
+		private Utils.Buffer buffer = new Utils.Buffer();                       // buffer holding in-memory PDF
+		private Utils.Buffer[] pages;       //pages[]*bytes.Buffer            // slice[page] of page content; 1-based
 		private int state;                                                      // current document state
 		private bool compress;                                                  // compression flag
 		private double k;                                                       // scale factor (number of points in user unit)
@@ -55,7 +58,7 @@ namespace FpdfCsharp
 		private Dictionary<string, bool> coreFonts;                             // array of core font names
 		private Dictionary<string, FontDefType> fonts;                          // array of used fonts
 		private Dictionary<string, FontFileType> fontFiles;                     // array of font files
-		private string[] diffs;                                                 // array of encoding differences
+		private List<string> diffs = new List<string>();                        // array of encoding differences
 		private string fontFamily;                                              // current font family
 		private string fontStyle;                                               // current font style
 		private bool underline;                                                 // underlining flag
@@ -113,13 +116,7 @@ namespace FpdfCsharp
 		private int nJs;                                                        // JavaScript object number
 		private string javascript; // javascript* string                   // JavaScript code to include in the PDF
 		private bool colorFlag;                                                 // indicates whether fill and text colors are different
-		struct color
-		{
-			// Composite values of colors
-			ColorType draw;
-			ColorType fill;
-			ColorType text;
-		}
+		private Color color = new Color();
 		private Dictionary<string, SpotColorType> spotColorMap;                 // Map of named ink-based colors
 		private double userUnderlineThickness;                                  // A custom user underline thickness multiplier.
 
@@ -709,6 +706,529 @@ namespace FpdfCsharp
 			return (sz.Wd, sz.Ht, this.unitStr);
 		}
 
+		// AddPageFormat adds a new page with non-default orientation or size. See
+		// AddPage() for more details.
+		//
+		// See New() for a description of orientationStr.
+		//
+		// size specifies the size of the new page in the units established in New().
+		//
+		// The PageSize() example demonstrates this method.
+		public void AddPageFormat(string orientationStr, SizeType size)
+		{
+			if (this.err != null) 
+			{
+				return;
+			}
+			if (this.page != this.pages.Length - 1) 
+			{
+				this.page = this.pages.Length - 1;
+			}
+			if (this.state == 0) 
+			{
+				this.open();
+			}
+			var familyStr = this.fontFamily;
+			var style = this.fontStyle;
+	   		if (this.underline) 
+			{
+				style += "U";
+			}
+			if (this.strikeout) 
+			{
+				style += "S";
+			}
+			var fontsize = this.fontSizePt;
+			var lw = this.lineWidth;
+			var dc = this.color.draw;
+			var fc = this.color.fill;
+			var tc = this.color.text;
+			var cf = this.colorFlag;
+	   
+			if (this.page > 0) 
+			{
+				this.inFooter = true;
+				// Page footer avoid double call on footer.
+				if (this.footerFnc != null) 
+				{
+					this.footerFnc();
+
+				}
+				else
+				{
+					this.footerFncLpi?.Invoke(false);  // not last page.
+				}
+				this.inFooter = false;
+				// Close page
+				this.endpage();
+			}
+			// Start new page
+			this.beginpage(orientationStr, size);
+			// 	Set line cap style to current value
+			this.outf("{0:D} J", this.capStyle);
+			// 	Set line join style to current value
+			this.outf("{0:D} j", this.joinStyle);
+			// Set line width
+			this.lineWidth = lw;
+			this.outf("{0:F2} w", lw * this.k);
+			// Set dash pattern
+			if (this.dashArray.Length > 0) 
+			{
+				this.outputDashPattern();
+			}
+			// 	Set font
+			if (familyStr != "") 
+			{
+				this.SetFont(familyStr, style, fontsize);
+				if (this.err != null) 
+				{
+					return;
+				}
+			}
+			// 	Set colors
+			this.color.draw = dc;
+	   		if (dc.str != "0 G") 
+			{
+				this._out(dc.str);
+			}
+			this.color.fill = fc;
+	   		if (fc.str != "0 g") 
+			{
+				this._out(fc.str);
+			}
+			this.color.text = tc;
+			this.colorFlag = cf;
+			// 	Page header
+			if (this.headerFnc != null)
+			{
+				this.inHeader = true;
+			}
+			this.headerFnc();
+			this.inHeader = false;
+			if (this.headerHomeMode) 
+			{
+				this.SetHomeXY();
+			}
+			// 	Restore line width
+			if (this.lineWidth != lw) 
+			{
+				this.lineWidth = lw;
+				this.outf("{0:F2} w", lw * this.k);
+			}
+			// Restore font
+			if (familyStr != "") 
+			{
+				this.SetFont(familyStr, style, fontsize);
+				if (this.err != null) 
+				{
+					return;
+				}
+			}
+			// Restore colors
+			if (this.color.draw.str != dc.str) 
+			{
+				this.color.draw = dc;
+				this._out(dc.str);
+			}
+			if (this.color.fill.str != fc.str) 
+			{
+				this.color.fill = fc;
+				this._out(fc.str);
+			}
+			this.color.text = tc;
+			this.colorFlag = cf;
+			return;
+		}
+		/// <summary>
+		/// GetXY returns the abscissa and ordinate of the current position.
+		///
+		/// Note: the value returned for the abscissa will be affected by the current
+		/// cell margin. To account for this, you may need to either add the value
+		/// returned by GetCellMargin() to it or call SetCellMargin(0) to remove the
+		/// cell margin.
+		/// </summary>
+		/// <returns>(x, y)</returns>
+		public (double x, double y) GetXY()
+		{
+			return (this.x, this.y);
+		}
+		/// <summary>
+		/// GetX returns the abscissa of the current position.
+		///
+		/// Note: the value returned will be affected by the current cell margin. To
+		/// account for this, you may need to either add the value returned by
+		/// GetCellMargin() to it or call SetCellMargin(0) to remove the cell margin.
+		/// </summary>
+		public double GetX()
+		{
+			return this.x;
+		}
+		/// <summary>
+		/// SetX defines the abscissa of the current position. If the passed value is
+		/// negative, it is relative to the right of the page.
+		/// </summary>
+		public void SetX(double x)
+		{
+			if (x >= 0) 
+			{
+				this.x = x;
+			}
+			else
+			{
+				this.x = this.w + x;
+			}
+		}
+		/// <summary>
+		/// GetY returns the ordinate of the current position.
+		/// </summary>
+		public double GetY()
+		{
+			return this.y;
+		}
+		/// <summary>
+		/// SetY moves the current abscissa back to the left margin and sets the
+		/// ordinate. If the passed value is negative, it is relative to the bottom of
+		/// the page.
+		/// </summary>
+		public void SetY(double y)
+		{
+			// dbg("SetY x %.2f, lMargin %.2f", f.x, f.lMargin)
+			this.x = this.lMargin;
+			if (y >= 0) 
+			{
+				this.y = y;
+			}
+			else
+			{
+				this.y = this.h + y;
+			}
+		}
+		/// <summary>
+		/// SetHomeXY is a convenience method that sets the current position to the left
+		/// and top margins.
+		/// </summary>
+		public void SetHomeXY()
+		{
+			this.SetY(this.tMargin);
+			this.SetX(this.lMargin);
+		}
+		/// <summary>
+		/// SetXY defines the abscissa and ordinate of the current position. If the
+		/// passed values are negative, they are relative respectively to the right and
+		/// bottom of the page.
+		/// </summary>
+		public void SetXY(double x, double y)
+		{
+			this.SetY(y);
+			this.SetX(x);
+		}
+		/// <summary>
+		/// Condition font family string to PDF name compliance. See section 5.3 (Names)
+		/// in https://resources.infosecinstitute.com/pdf-file-format-basic-structure/
+		/// </summary>
+		private string fontFamilyEscape(string familyStr) 
+		{
+			var escStr = familyStr.Replace(" ", "#20");
+			// Additional replacements can take place here
+			return escStr;
+		}
+
+
+		// SetFont sets the font used to print character strings. It is mandatory to
+		// call this method at least once before printing text or the resulting
+		// document will not be valid.
+		//
+		// The font can be either a standard one or a font added via the AddFont()
+		// method or AddFontFromReader() method. Standard fonts use the Windows
+		// encoding cp1252 (Western Europe).
+		//
+		// The method can be called before the first page is created and the font is
+		// kept from page to page. If you just wish to change the current font size, it
+		// is simpler to call SetFontSize().
+		//
+		// Note: the font definition file must be accessible. An error is set if the
+		// file cannot be read.
+		//
+		// familyStr specifies the font family. It can be either a name defined by
+		// AddFont(), AddFontFromReader() or one of the standard families (case
+		// insensitive): "Courier" for fixed-width, "Helvetica" or "Arial" for sans
+		// serif, "Times" for serif, "Symbol" or "ZapfDingbats" for symbolic.
+		//
+		// styleStr can be "B" (bold), "I" (italic), "U" (underscore), "S" (strike-out)
+		// or any combination. The default value (specified with an empty string) is
+		// regular. Bold and italic styles do not apply to Symbol and ZapfDingbats.
+		//
+		// size is the font size measured in points. The default value is the current
+		// size. If no size has been specified since the beginning of the document, the
+		// value taken is 12.
+		public void SetFont(string familyStr, string styleStr, double size)
+		{
+			// dbg("SetFont x %.2f, lMargin %.2f", f.x, f.lMargin)
+			if (this.err != null) 
+			{
+				return;
+			}
+			// dbg("SetFont")
+			familyStr = fontFamilyEscape(familyStr);
+	   		
+			if (familyStr == "") 
+			{
+				familyStr = this.fontFamily;
+			}
+			else
+			{
+				familyStr = familyStr.ToLower();
+	  		}
+			styleStr = styleStr.ToUpper();
+			this.underline = styleStr.Contains("U");
+	   		if (this.underline) 
+			{
+				styleStr = styleStr.Replace("U", "");
+			}
+			this.strikeout = styleStr.Contains("S");
+			if (this.strikeout) 
+			{
+				styleStr = styleStr.Replace("S", "");
+			}
+			if (styleStr == "IB") 
+			{
+				styleStr = "BI";
+			}
+			if (size == 0.0) 
+			{
+				size = this.fontSizePt;
+			}
+
+			// Test if font is already loaded
+			var fontKey = familyStr + styleStr;
+			if (!this.fonts.ContainsKey(fontKey))
+			{ 
+				// Test if one of the core fonts
+				if (familyStr == "arial") 
+				{
+					familyStr = "helvetica";
+				}
+				if (this.coreFonts.ContainsKey(familyStr))
+				{
+					if (familyStr == "symbol") 
+					{
+						familyStr = "zapfdingbats";
+					}
+					if (familyStr == "zapfdingbats") 
+					{
+						styleStr = "";
+					}
+					fontKey = familyStr + styleStr;
+					if (!this.fonts.ContainsKey(fontKey))
+					{
+						var rdr = this.coreFontReader(familyStr, styleStr);
+						if (this.err == null) 
+						{
+							this.AddFontFromReader(familyStr, styleStr, rdr);
+						}
+						if (this.err != null) {
+							return;
+						}
+					}
+				}
+				else
+				{
+					this.err = new PdfError($"undefined font: {familyStr} {styleStr}");
+					return;
+	  			}
+			}
+			// Select it
+			this.fontFamily = familyStr;
+			this.fontStyle = styleStr;
+			this.fontSizePt = size;
+			this.fontSize = size / this.k;
+			this.currentFont = this.fonts[fontKey];
+	   		if (this.currentFont.Tp == "UTF8") 
+			{
+				this.isCurrentUTF8 = true;
+			}
+			else
+			{
+				this.isCurrentUTF8 = false;
+	  		}
+			if (this.page > 0) 
+			{
+				this.outf("BT /F{0} {1:F2} Tf ET", this.currentFont.i, this.fontSizePt);
+			}
+			return;
+		}
+		/// <summary>
+		/// getFontKey is used by AddFontFromReader and GetFontDesc
+		/// </summary>
+		private string getFontKey(string familyStr, string styleStr)
+		{
+			familyStr = familyStr.ToLower();
+			styleStr = styleStr.ToUpper();
+			if (styleStr == "IB") 
+			{
+				styleStr = "BI";
+			}
+			return familyStr + styleStr;
+		}
+		/// <summary>
+		/// AddFontFromReader imports a TrueType, OpenType or Type1 font and makes it
+		/// available using a reader that satisifies the io.Reader interface. See
+		/// AddFont for details about familyStr and styleStr.
+		/// </summary>
+		public void AddFontFromReader(string familyStr, string styleStr, TextReader r)
+		{
+			if (this.err != null) 
+			{
+				return;
+			}
+			// dbg("Adding family [%s], style [%s]", familyStr, styleStr)
+			familyStr = fontFamilyEscape(familyStr);
+			var fontkey = getFontKey(familyStr, styleStr);
+			if (this.fonts.ContainsKey(fontkey)) 
+			{
+				return;
+			}
+			FontDefType info = this.loadfont(r);
+			if (this.err != null) 
+			{
+				return;
+			}
+			if (info.Diff.Length > 0) 
+			{
+				// Search existing encodings
+				var n = -1;
+				for (var j = 0; j < this.diffs.Count; j++)
+				{
+					var str = this.diffs[j];
+					if (str == info.Diff) 
+					{
+						n = j + 1;
+						break;
+					}
+				}
+				if (n < 0) 
+				{
+					this.diffs.Add(info.Diff);
+					n = this.diffs.Count;
+				}
+				info.DiffN = n;
+			}
+			// dbg("font [%s], type [%s]", info.File, info.Tp)
+			if (info.File.Length > 0) 
+			{
+				// Embedded font
+				if (info.Tp == "TrueType") 
+				{
+					this.fontFiles[info.File] = new FontFileType { length1 = info.OriginalSize };
+				}
+				else
+				{
+					this.fontFiles[info.File] = new FontFileType { length1 = info.Size1, length2 = info.Size2 };
+				}
+			}
+			this.fonts[fontkey] = info;
+			return;
+		}
+
+
+		// Load a font definition file from the given Reader
+		private FontDefType loadfont(TextReader r)
+		{
+			FontDefType fontDef;
+			if (this.err != null)
+			{
+				return null;
+			}
+			// dbg("Loading font [%s]", fontStr)
+			try
+			{
+				var fontDefStr = r.ReadToEnd();
+				fontDef = JsonConvert.DeserializeObject<FontDefType>(fontDefStr);
+			}
+			catch (Exception e)
+			{
+				this.err = new PdfError(e.Message);
+				return null;
+			}
+			fontDef.i = fontDef.GenerateFontID();
+			return fontDef;
+		}
+
+
+
+
+		public StringReader coreFontReader(string familyStr, string styleStr)
+		{
+			var key = familyStr + styleStr;
+			if (Embed.embeddedFontList.TryGetValue(key, out string embeddedFont)) 
+			{
+				return new StringReader(embeddedFont);
+			}
+			else
+			{
+				this.SetErrorf("could not locate '{0}' among embedded core font definition files", key);
+			}
+			return null;
+		}
+
+		private void outputDashPattern()
+		{
+			var buf = new Utils.Buffer();
+			buf.WriteByte((byte)'[');
+			for (var i = 0; i < this.dashArray.Length; i++)
+			{
+				var value = this.dashArray[i];
+				if (i > 0) 
+				{
+					buf.WriteByte((byte)' ');
+				}
+				buf.WriteString(string.Format(CultureInfo.InvariantCulture, "{0:F2}", value));
+			}
+			buf.WriteString("] ");
+			buf.WriteString(string.Format(CultureInfo.InvariantCulture, "{0:F2}", this.dashPhase));
+			buf.WriteString(" d");
+			this.outbuf(buf);
+		}
+
+		private void outbuf(Utils.Buffer buf)
+		{
+			Utils.Buffer targetBuf;
+			if (this.state == 2)
+			{
+				targetBuf = this.pages[this.page];
+			}
+			else
+			{
+				targetBuf = this.buffer;
+			}
+			targetBuf.ReadFrom(buf);
+			targetBuf.WriteString("\n");
+		}
+
+		private void outf(string fmtStr, params object[] args)
+		{
+			_out(String.Format(CultureInfo.InvariantCulture, fmtStr, args));
+		}
+
+		private void _out(string s)
+		{
+			Utils.Buffer buffer;
+			if (this.state == 2)
+			{
+				buffer = this.pages[this.page];
+			}
+			else
+			{
+				buffer = this.buffer;
+			}
+			buffer.WriteString(s);
+			buffer.WriteString("\n");
+		}
+
+		private void beginpage(string orientationStr, SizeType size)
+		{
+			throw new NotImplementedException();
+		}
 
 		private void endpage()
 		{
