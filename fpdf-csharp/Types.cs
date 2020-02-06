@@ -178,10 +178,10 @@ namespace FpdfCsharp
         string linkStr;    // ...application-provided external link string
     }
 
-    struct IntLinkType
+    public struct IntLinkType
     {
-        int page;
-        double y;
+        public int page;
+        public double y;
     }
 
     /// <summary>

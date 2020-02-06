@@ -70,7 +70,7 @@ namespace FpdfCsharp
 		private Dictionary<string, ImageInfoType> images;                       // array of used images
 		private Dictionary<string, string> aliasMap;                            // map of alias->replacement
 		private LinkType[][] pageLinks;                                         // pageLinks[page][link], both 1-based
-		private IntLinkType[] links;                                            // array of internal links
+		private List<IntLinkType> links = new List<IntLinkType>();              // list of internal links
 		private Attachment[] attachments;                                       // slice of content to embed globally
 		private AnnotationAttach[] pageAttachments;                             // 1-based array of annotation for file attachments (per page)
 		private OutlineType[] outlines;                                         // array of outlines
@@ -1109,6 +1109,33 @@ namespace FpdfCsharp
 			return (this.fontSizePt, this.fontSize);
 		}
 
+		/// <summary>
+		/// AddLink creates a new internal link and returns its identifier. An internal
+		/// link is a clickable area which directs to another place within the document.
+		/// The destination is defined with SetLink().
+		/// </summary>
+		/// <returns>An identifier that can be passed to Cell(), Write(), Image() or Link()</returns>
+		public int AddLink()
+		{
+			this.links.Add(new IntLinkType());
+			return this.links.Count - 1;
+		}
+
+		/// <summary>
+		/// SetLink defines the page and position a link points to. See AddLink().
+		/// </summary>
+		public void SetLink(int link, double y, int page)
+		{
+			if (y == -1) 
+			{
+				y = this.y;
+			}
+			if (page == -1) 
+			{
+				page = this.page;
+			}
+			this.links[link] = new IntLinkType { page = page, y = y };
+		}
 
 		/// <summary>
 		/// getFontKey is used by AddFontFromReader and GetFontDesc
