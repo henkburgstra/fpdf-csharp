@@ -187,17 +187,17 @@ namespace FpdfCsharp
     /// <summary>
     /// outlineType is used for a sidebar outline of bookmarks
     /// </summary>
-    struct OutlineType
+    public struct OutlineType
     {
-        string text;
-        int level;
-        int parent;
-        int first;
-        int last;
-        int next;
-        int prev;
-        double y;
-        int p;
+        public string text;
+        public int level;
+        public int parent;
+        public int first;
+        public int last;
+        public int next;
+        public int prev;
+        public double y;
+        public int p;
     }
     
     struct BlendModeType

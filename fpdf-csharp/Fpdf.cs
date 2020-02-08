@@ -73,7 +73,7 @@ namespace FpdfCsharp
 		private List<IntLinkType> links = new List<IntLinkType>();              // list of internal links
 		private Attachment[] attachments;                                       // slice of content to embed globally
 		private AnnotationAttach[] pageAttachments;                             // 1-based array of annotation for file attachments (per page)
-		private OutlineType[] outlines;                                         // array of outlines
+		private List<OutlineType> outlines = new List<OutlineType>();           // array of outlines
 		private int outlineRoot;                                                // root of outlines
 		private bool autoPageBreak;                                             // automatic page breaking
 		private Func<bool> acceptPageBreak;                                     // returns true to accept page break
@@ -1181,9 +1181,49 @@ namespace FpdfCsharp
 		}
 
 		/// <summary>
-		/// getFontKey is used by AddFontFromReader and GetFontDesc
+		/// Bookmark sets a bookmark that will be displayed in a sidebar outline. txtStr
+		/// is the title of the bookmark. level specifies the level of the bookmark in
+		/// the outline; 0 is the top level, 1 is just below, and so on. y specifies the
+		/// vertical position of the bookmark destination in the current page; -1
+		/// indicates the current position.
 		/// </summary>
-		private string getFontKey(string familyStr, string styleStr)
+		public void Bookmark(string txtStr, int level, double y)
+		{
+			if (y == -1) 
+			{
+				y = this.y;
+			}
+			if (this.isCurrentUTF8) 
+			{
+				txtStr = Util.Utf8ToUtf16(txtStr);
+			}
+			this.outlines.Add(new OutlineType
+			{
+				text = txtStr,
+				level = level,
+				y = y,
+				p = this.PageNo(),
+				prev = -1,
+				last = -1,
+				next = -1,
+				first = -1
+			});
+		}
+
+		/// <summary>
+		/// PageNo returns the current page number.
+		///
+		/// See the example for AddPage() for a demonstration of this method.
+		/// </summary>
+		public int PageNo()
+		{
+			return this.page;
+		}
+
+	/// <summary>
+	/// getFontKey is used by AddFontFromReader and GetFontDesc
+	/// </summary>
+	private string getFontKey(string familyStr, string styleStr)
 		{
 			familyStr = familyStr.ToLower();
 			styleStr = styleStr.ToUpper();
