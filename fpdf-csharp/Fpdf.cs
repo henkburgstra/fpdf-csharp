@@ -1158,6 +1158,27 @@ namespace FpdfCsharp
 			});
 		}
 
+		/// <summary>
+		/// Link puts a link on a rectangular area of the page. Text or image links are
+		/// generally put via Cell(), Write() or Image(), but this method can be useful
+		/// for instance to define a clickable area inside an image. link is the value
+		/// returned by AddLink().
+		/// </summary>
+		public void Link(double x, double y, double w, double h, int link)
+		{
+			this.newLink(x, y, w, h, link, "");
+		}
+
+		/// <summary>
+		/// LinkString puts a link on a rectangular area of the page. Text or image
+		/// links are generally put via Cell(), Write() or Image(), but this method can
+		/// be useful for instance to define a clickable area inside an image. linkStr
+		/// is the target URL.
+		/// </summary>
+		public void LinkString(double x, double y, double w, double h, string linkStr)
+		{
+			this.newLink(x, y, w, h, 0, linkStr);
+		}
 
 		/// <summary>
 		/// getFontKey is used by AddFontFromReader and GetFontDesc
