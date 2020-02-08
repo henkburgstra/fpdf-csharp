@@ -69,7 +69,7 @@ namespace FpdfCsharp
 		private double ws;                                                      // word spacing
 		private Dictionary<string, ImageInfoType> images;                       // array of used images
 		private Dictionary<string, string> aliasMap;                            // map of alias->replacement
-		private LinkType[][] pageLinks;                                         // pageLinks[page][link], both 1-based
+		private List<List<LinkType>> pageLinks = new List<List<LinkType>>();    // pageLinks[page][link], both 1-based
 		private List<IntLinkType> links = new List<IntLinkType>();              // list of internal links
 		private Attachment[] attachments;                                       // slice of content to embed globally
 		private AnnotationAttach[] pageAttachments;                             // 1-based array of annotation for file attachments (per page)
@@ -1136,6 +1136,28 @@ namespace FpdfCsharp
 			}
 			this.links[link] = new IntLinkType { page = page, y = y };
 		}
+
+		/// <summary>
+		/// newLink adds a new clickable link on current page
+		/// </summary>
+		private void newLink(double x, double y, double w, double h, int link, string linkStr)
+		{
+			// linkList, ok := f.pageLinks[f.page]
+			// if !ok {
+			// linkList = make([]linkType, 0, 8)
+			// f.pageLinks[f.page] = linkList
+			// }
+			this.pageLinks[this.page].Add(new LinkType
+			{
+				x = x * this.k,
+				y = this.hPt - y * this.k,
+				wd = w * this.k,
+				ht = h * this.k,
+				link = link,
+				linkStr = linkStr
+			});
+		}
+
 
 		/// <summary>
 		/// getFontKey is used by AddFontFromReader and GetFontDesc

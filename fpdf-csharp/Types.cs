@@ -168,14 +168,14 @@ namespace FpdfCsharp
         string i;          // SHA-1 checksum of the above values.
     }
 
-    struct LinkType 
+    public struct LinkType 
     {
-        double x;
-        double y;
-        double wd;
-        double ht;
-        int link;          // Auto-generated internal link ID or...
-        string linkStr;    // ...application-provided external link string
+        public double x;
+        public double y;
+        public double wd;
+        public double ht;
+        public int link;          // Auto-generated internal link ID or...
+        public string linkStr;    // ...application-provided external link string
     }
 
     public struct IntLinkType
