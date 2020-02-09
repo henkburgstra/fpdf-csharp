@@ -1211,6 +1211,169 @@ namespace FpdfCsharp
 		}
 
 		/// <summary>
+		/// Text prints a character string. The origin (x, y) is on the left of the
+		/// first character at the baseline. This method permits a string to be placed
+		/// precisely on the page, but it is usually easier to use Cell(), MultiCell()
+		/// or Write() which are the standard methods to print text.
+		/// </summary>
+		public void Text(double x, double y, string txtStr)
+		{
+			string txt2;
+	   		if (this.isCurrentUTF8) 
+			{
+				if (this.isRTL) 
+				{
+					txtStr = reverseText(txtStr);
+					x -= this.GetStringWidth(txtStr);
+				}
+				txt2 = this.escape(Util.Utf8ToUtf16(txtStr, false));
+				foreach (var uni in txtStr)
+				{
+					this.currentFont.usedRunes[uni] = uni;
+				}
+			}
+			else
+			{
+				txt2 = this.escape(txtStr);
+	  		}
+			var s = string.Format("BT {0:F2} {1:F2} Td ({2}) Tj ET", x * this.k, (this.h - y) * this.k, txt2);
+	   		if (this.underline && txtStr != "") 
+			{
+				s += " " + this.dounderline(x, y, txtStr);
+			}
+			if (this.strikeout && txtStr != "") 
+			{
+				s += " " + this.dostrikeout(x, y, txtStr);
+			}
+			if (this.colorFlag) 
+			{
+				s = string.Format("q {0} {1} Q", this.color.text.str, s);
+			}
+			this._out(s);
+		}
+
+		/// <summary>
+		/// SetUnderlineThickness accepts a multiplier for adjusting the text underline
+		/// thickness, defaulting to 1. See SetUnderlineThickness example.
+		/// </summary>
+		public void SetUnderlineThickness(double thickness)
+		{
+			this.userUnderlineThickness = thickness;
+		}
+
+		private int blankCount(string str)
+		{
+			int count = 0;
+			foreach (var c in str)
+			{
+				if (Char.IsWhiteSpace(c)) count++;
+			}
+			return count;
+		}
+		// Underline text
+		private string dounderline(double x, double y, string txt)
+		{
+			var up = (double)(this.currentFont.Up);
+			var ut = (double)(this.currentFont.Ut) * this.userUnderlineThickness;
+			var w = this.GetStringWidth(txt) + this.ws * (double)(blankCount(txt));
+			return string.Format("{0:F2} {1:F2} {2:F2} {3:F2} re f", x * this.k,
+				(this.h - (y - up / 1000 * this.fontSize)) * this.k, w * this.k, -ut / 1000 * this.fontSizePt);
+		}
+
+		private string dostrikeout(double x, double y, string txt)
+		{
+			var up = (double)(this.currentFont.Up);
+			var ut = (double)(this.currentFont.Ut);
+			var w = this.GetStringWidth(txt) + this.ws * (double)(blankCount(txt));
+			return string.Format("{0:F2} {1:F2} {2:F2} {3:F2} re f", x * this.k,
+				(this.h - (y + 4 * up / 1000 * this.fontSize)) * this.k, w * this.k, -ut / 1000 * this.fontSizePt);
+		}
+
+		/// <summary>
+		/// Escape special characters in strings
+		/// </summary>
+		private string escape(string s)
+		{
+			return s.Replace("\\", "\\\\")
+				.Replace("(", "\\(")
+				.Replace(")", "\\)")
+				.Replace("\r", "\\r");
+		}
+
+		/// <summary>
+		/// GetStringWidth returns the length of a string in user units. A font must be
+		/// currently selected.
+		/// </summary>
+		double GetStringWidth(string s) 
+		{
+			if (this.err != null) 
+			{
+				return 0;
+			}
+			var w = this.GetStringSymbolWidth(s);
+			return (double)(w) * this.fontSize / 1000;
+		}
+
+
+		/// <summary>
+		/// GetStringSymbolWidth returns the length of a string in glyf units. A font must be
+		/// currently selected.
+		/// </summary>
+		public int GetStringSymbolWidth(string s)
+		{
+			if (this.err != null) 
+			{
+				return 0;
+			}
+			int w = 0;
+			if (this.isCurrentUTF8) 
+			{
+				foreach(var c in s)
+				{
+					if (this.currentFont.Cw.Length >= c && this.currentFont.Cw[c] > 0) 
+					{
+						if (this.currentFont.Cw[c] != 65535) 
+						{
+							w += this.currentFont.Cw[c];
+						}
+					} 
+					else if (this.currentFont.Desc.MissingWidth != 0) 
+					{
+						w += this.currentFont.Desc.MissingWidth;
+					} 
+					else 
+					{
+						w += 500;
+					}
+				}
+			} 
+			else 
+			{
+				foreach (var c in s) 
+				{
+					if (c == 0) 
+					{
+						break;
+					}
+					w += this.currentFont.Cw[c];
+				}
+			}
+			return w;
+		}
+
+
+		/// <summary>
+		/// Revert string to use in RTL languages
+		/// </summary>
+		private string reverseText(string text)
+		{
+			char[] arr = text.ToCharArray();
+			Array.Reverse(arr);
+			return new string(arr);
+		}
+
+
+		/// <summary>
 		/// PageNo returns the current page number.
 		///
 		/// See the example for AddPage() for a demonstration of this method.
@@ -1220,10 +1383,10 @@ namespace FpdfCsharp
 			return this.page;
 		}
 
-	/// <summary>
-	/// getFontKey is used by AddFontFromReader and GetFontDesc
-	/// </summary>
-	private string getFontKey(string familyStr, string styleStr)
+		/// <summary>
+		/// getFontKey is used by AddFontFromReader and GetFontDesc
+		/// </summary>
+		private string getFontKey(string familyStr, string styleStr)
 		{
 			familyStr = familyStr.ToLower();
 			styleStr = styleStr.ToUpper();

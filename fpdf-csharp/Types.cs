@@ -50,12 +50,12 @@ namespace FpdfCsharp
         //  Open(name string) (io.Reader, error)
     }
 
-    struct FontBoxType
+    public struct FontBoxType
     {
-        int Xmin;
-        int Ymin;
-        int Xmax;
-        int Ymax;
+        public int Xmin;
+        public int Ymin;
+        public int Xmax;
+        public int Ymax;
     }
 
     struct FontFileType
@@ -76,37 +76,37 @@ namespace FpdfCsharp
         // The maximum height above the baseline reached by glyphs in this
         // font (for example for "S"). The height of glyphs for accented
         // characters shall be excluded.
-        int Ascent;
+        public int Ascent;
         // The maximum depth below the baseline reached by glyphs in this
         // font. The value shall be a negative number.
-        int Descent;
+        public int Descent;
         // The vertical coordinate of the top of flat capital letters,
         // measured from the baseline (for example "H").
-        int CapHeight;
+        public int CapHeight;
         // A collection of flags defining various characteristics of the
         // font. (See the FontFlag* constants.)
-        int Flags;
+        public int Flags;
         // A rectangle, expressed in the glyph coordinate system, that
         // shall specify the font bounding box. This should be the smallest
         // rectangle enclosing the shape that would result if all of the
         // glyphs of the font were placed with their origins coincident
         // and then filled.
-        FontBoxType FontBBox;
+        public FontBoxType FontBBox;
         // The angle, expressed in degrees counterclockwise from the
         // vertical, of the dominant vertical strokes of the font. (The
         // 9-o’clock position is 90 degrees, and the 3-o’clock position
         // is –90 degrees.) The value shall be negative for fonts that
         // slope to the right, as almost all italic fonts do.
-        int ItalicAngle;
+        public int ItalicAngle;
         // The thickness, measured horizontally, of the dominant vertical
         // stems of glyphs in the font.
-        int StemV;
+        public int StemV;
         // The width to use for character codes whose widths are not
         // specified in a font dictionary’s Widths array. This shall have
         // a predictable effect only if all such codes map to glyphs whose
         // actual widths are the same as the value of the MissingWidth
         // entry. (Default value: 0.)
-        int MissingWidth;
+        public int MissingWidth;
     }
 
     public class FontDefType
@@ -127,7 +127,7 @@ namespace FpdfCsharp
         public int DiffN;                        // Position of diff in app array, set by font loader
         public string i;                         // 1-based position in font list, set by font loader, not this program
         //utf8File* utf8FontFile // UTF-8 font
-        Dictionary<int, int> usedRunes;   // Array of used runes
+        public Dictionary<int, int> usedRunes;   // Array of used runes
 
 
         // generateFontID generates a font Id from the font definition
