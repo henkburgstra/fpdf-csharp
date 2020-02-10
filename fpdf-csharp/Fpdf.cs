@@ -1253,12 +1253,63 @@ namespace FpdfCsharp
 		}
 
 		/// <summary>
+		/// SetWordSpacing sets spacing between words of following text. See the
+		/// WriteAligned() example for a demonstration of its use.
+		/// </summary>
+		public void SetWordSpacing(double space)
+		{
+			this._out(String.Format("{0:F5} Tw", space * this.k));
+		}
+
+		/// <summary>
 		/// SetUnderlineThickness accepts a multiplier for adjusting the text underline
 		/// thickness, defaulting to 1. See SetUnderlineThickness example.
 		/// </summary>
 		public void SetUnderlineThickness(double thickness)
 		{
 			this.userUnderlineThickness = thickness;
+		}
+
+		/// <summary>
+		/// SetTextRenderingMode sets the rendering mode of following text.
+		/// This method is demonstrated in the SetTextRenderingMode example.
+		/// </summary>
+		/// <param name="mode">
+		/// The mode can be as follows:
+		/// 0: Fill text
+		/// 1: Stroke text
+		/// 2: Fill, then stroke text
+		/// 3: Neither fill nor stroke text (invisible)
+		/// 4: Fill text and add to path for clipping
+		/// 5: Stroke text and add to path for clipping
+		/// 6: Fills then stroke text and add to path for clipping
+		/// 7: Add text to path for clipping
+		/// </param>
+		public void SetTextRenderingMode(int mode)
+		{
+			if (mode >= 0 && mode <= 7) 
+			{
+				this._out(String.Format("{0:D} Tr", mode));
+			}
+		}
+
+		/// <summary>
+		/// SetAcceptPageBreakFunc allows the application to control where page breaks
+		/// occur.
+		///
+		/// See the example for SetLeftMargin() to see how this function can be used to
+		/// manage multiple columns.
+		/// </summary>
+		/// <param name="fnc">
+		/// fnc is an application function (typically a closure) that is called by the
+		/// library whenever a page break condition is met. The break is issued if true
+		/// is returned. The default implementation returns a value according to the
+		/// mode selected by SetAutoPageBreak. The function provided should not be
+		/// called by the application.
+		/// </param>
+		public void SetAcceptPageBreakFunc(Func<bool> fnc)
+		{
+			this.acceptPageBreak = fnc;
 		}
 
 		private int blankCount(string str)
