@@ -1312,6 +1312,293 @@ namespace FpdfCsharp
 			this.acceptPageBreak = fnc;
 		}
 
+
+		/// <summary>
+		/// CellFormat prints a rectangular cell with optional borders, background color
+		/// and character string. The upper-left corner of the cell corresponds to the
+		/// current position. The text can be aligned or centered. After the call, the
+		/// current position moves to the right or to the next line. It is possible to
+		/// put a link on the text.
+		///
+		/// An error will be returned if a call to SetFont() has not already taken
+		/// place before this method is called.
+		///
+		/// If automatic page breaking is enabled and the cell goes beyond the limit, a
+		/// page break is done before outputting.
+		/// </summary>
+		/// <param name="w">
+		/// w specifies the width of the cell. If w is 0, the cell extends up to the right margin.
+		/// </param>
+		/// <param name="h">
+		/// h specifies the height of the cell. Specifying 0 for h will result in no output,
+		/// but the current position will be advanced by w.
+		/// </param>
+		/// <param name="txtStr">txtStr specifies the text to display.</param>
+		/// <param name="borderStr">
+		/// borderStr specifies how the cell border will be drawn. An empty string
+		/// indicates no border, "1" indicates a full border, and one or more of "L",
+		/// "T", "R" and "B" indicate the left, top, right and bottom sides of the
+		/// border.
+		/// </param>
+		/// <param name="ln">
+		/// ln indicates where the current position should go after the call. Possible
+		/// values are 0 (to the right), 1 (to the beginning of the next line), and 2
+		/// (below). Putting 1 is equivalent to putting 0 and calling Ln() just after.
+		/// </param>
+		/// <param name="alignStr">
+		/// alignStr specifies how the text is to be positioned within the cell.
+		/// Horizontal alignment is controlled by including "L", "C" or "R" (left,
+		/// center, right) in alignStr. Vertical alignment is controlled by including
+		/// "T", "M", "B" or "A" (top, middle, bottom, baseline) in alignStr. The default
+		/// alignment is left middle.
+		/// </param>
+		/// <param name="fill">fill is true to paint the cell background or false to leave it transparent.</param>
+		/// <param name="link">link is the identifier returned by AddLink() or 0 for no internal link.</param>
+		/// <param name="linkStr">
+		/// linkStr is a target URL or empty for no external link. A non--zero value for
+		/// link takes precedence over linkStr.
+		/// </param>
+		public void CellFormat(double w, double h, string txtStr, string borderStr, int ln,
+		   string alignStr, bool fill, int link, string linkStr)
+		{
+			// dbg("CellFormat. h = %.2f, borderStr = %s", h, borderStr)
+			if (this.err != null)
+			{
+				return;
+			}
+
+			if (this.currentFont.Name == "") 
+			{
+				this.err = new PdfError("font has not been set; unable to render text");
+				return;
+			}
+
+			borderStr = borderStr.ToUpper();
+			var k = this.k;
+	   		if (this.y + h > this.pageBreakTrigger && !this.inHeader && !this.inFooter && this.acceptPageBreak()) 
+			{
+				// Automatic page break
+				var x = this.x;
+				var ws = this.ws;
+				// dbg("auto page break, x %.2f, ws %.2f", x, ws)
+				if (ws > 0) 
+				{
+					this.ws = 0;
+					this._out("0 Tw");
+				}
+				this.AddPageFormat(this.curOrientation, this.curPageSize);
+				if (this.err != null) 
+				{
+					return;
+				}
+				this.x = x;
+				if (ws > 0) 
+				{
+					this.ws = ws;
+					this.outf("{0:F3} Tw", ws * k);
+				}
+			}
+			if (w == 0) 
+			{
+				w = this.w - this.rMargin - this.x;
+			}
+			var s = new Utils.Buffer();
+	   		if (fill || borderStr == "1") 
+			{
+				string op;
+				if (fill) 
+				{
+					if (borderStr == "1") 
+					{
+						op = "B";
+						// dbg("border is '1', fill")
+					}
+					else
+					{
+						op = "f";
+					// dbg("border is empty, fill")
+					}
+				}
+				else
+				{
+					// dbg("border is '1', no fill")
+					op = "S";
+	  			}
+				/// dbg("(CellFormat) f.x %.2f f.k %.2f", f.x, f.k)
+				s.Writef("%.2f %.2f %.2f %.2f re %s ", this.x * k, (this.h - this.y) * k, w * k, -h * k, op);
+			}
+			if (borderStr.Length > 0 && borderStr != "1") 
+			{
+				// fmt.Printf("border is '%s', no fill\n", borderStr)
+				var x = this.x;
+				var y = this.y;
+				var left = x * k;
+				var top = (this.h - y) * k;
+				var right = (x + w) * k;
+				var bottom = (this.h - (y + h)) * k;
+				if (borderStr.Contains("L")) 
+				{
+					s.Writef("{0:F2} {1:F2} m {2:F2} {3:F2} l S ", left, top, left, bottom);
+				}
+				if (borderStr.Contains("T")) 
+				{
+					s.Writef("{0:F2} {1:F2} m {2:F2} {3:F2} l S ", left, top, right, top);
+				}
+				if (borderStr.Contains("R")) 
+				{
+					s.Writef("{0:F2} {1:F2} m {2:F2} {3:F2} l S ", right, top, right, bottom);
+				}
+				if (borderStr.Contains("B")) 
+				{
+					s.Writef("{0:F2} {1:F2} m {2:F2} {3:F2} l S ", left, bottom, right, bottom);
+				}
+			}
+			if (txtStr.Length > 0) 
+			{
+				double dx, dy;
+				// Horizontal alignment
+				if (alignStr.Contains("R"))
+				{
+					dx = w - this.cMargin - this.GetStringWidth(txtStr);
+				}
+				else if (alignStr.Contains("C"))
+				{
+					dx = (w - this.GetStringWidth(txtStr)) / 2;
+				}
+				else
+				{
+					dx = this.cMargin;
+				}
+
+				// Vertical alignment
+				if (alignStr.Contains("T")) 
+				{
+					dy = (this.fontSize - h) / 2.0;
+				}
+				else if (alignStr.Contains("B"))
+				{
+					dy = (h - this.fontSize) / 2.0;
+				}
+				else if (alignStr.Contains("A"))
+				{
+					double descent;
+					var d = this.currentFont.Desc;
+					if (d.Descent == 0) 
+					{
+						// not defined (standard font?), use average of 19%
+						descent = -0.19 * this.fontSize;
+					}
+					else
+					{
+						descent = (double)d.Descent * this.fontSize / (double)(d.Ascent - d.Descent);
+	  				}
+					dy = (h - this.fontSize) / 2.0 - descent;
+				}
+				else
+				{
+					dy = 0;
+				}
+				if (this.colorFlag) 
+				{
+					s.Writef("q {0} ", this.color.text.str);
+				}
+				//If multibyte, Tw has no effect - do word spacing using an adjustment before each space
+				if ((this.ws != 0 || alignStr == "J") && this.isCurrentUTF8)   // && f.ws != 0 
+				{
+					if (this.isRTL) 
+					{
+						txtStr = reverseText(txtStr);
+					}
+					var wmax = (int)(Math.Ceiling((w - 2 * this.cMargin) * 1000 / this.fontSize));
+					foreach(var uni in txtStr) 
+					{
+						this.currentFont.usedRunes[uni] = uni;
+					}
+					var space = this.escape(Util.Utf8ToUtf16(" ", false));
+					var strSize = this.GetStringSymbolWidth(txtStr);
+					s.Writef("BT 0 Tw {0:F2} {1:F2} Td [", (this.x + dx) * k, (this.h - (this.y + .5 * h + .3 * this.fontSize)) * k);
+					var t = txtStr.Split(' ');
+					var shift = (double)(wmax - strSize) / (double)(t.Length - 1);
+					var numt = t.Length;
+					for (var i = 0; i < numt; i++) 
+					{
+						var tx = t[i];
+						tx = "(" + this.escape(Util.Utf8ToUtf16(tx, false)) + ")";
+						s.Writef("{0} ", tx);
+						if ((i + 1) < numt) 
+						{
+							s.Writef("{0:F3}({1}) ", -shift, space);
+						}
+					}
+					s.Writef("] TJ ET");
+				} 
+				else
+				{
+					string txt2;
+					if (this.isCurrentUTF8) 
+					{
+						if (this.isRTL) 
+						{
+							txtStr = reverseText(txtStr);
+						}
+						txt2 = this.escape(Util.Utf8ToUtf16(txtStr, false));
+						foreach(var uni in txtStr) 
+						{
+							this.currentFont.usedRunes[uni] = uni;
+						}
+					}
+					else
+					{
+
+						txt2 = txtStr.Replace("\\", "\\\\")
+  							.Replace("(", "\\(")
+  							.Replace(")", "\\)");
+  					}
+					var bt = (this.x + dx) * k;
+					var td = (this.h - (this.y + dy + .5 * h + .3 * this.fontSize)) * k;
+					s.Writef("BT {0:F2} {1:F2} Td ({2})Tj ET", bt, td, txt2);
+					//BT %.2F %.2F Td (%s) Tj ET',(f.x+dx)*k,(f.h-(f.y+.5*h+.3*f.FontSize))*k,txt2);
+				}
+
+				if (this.underline) 
+				{
+					s.Writef(" {0}", this.dounderline(this.x + dx, this.y + dy + .5 * h + .3 * this.fontSize, txtStr));
+				}
+				if (this.strikeout) 
+				{
+					s.Writef(" {0}", this.dostrikeout(this.x + dx, this.y + dy + .5 * h + .3 * this.fontSize, txtStr));
+				}
+				if (this.colorFlag) 
+				{
+					s.Writef(" Q");
+				}
+				if (link > 0 || linkStr.Length > 0) 
+				{
+					this.newLink(this.x + dx, this.y + dy + .5 * h - .5 * this.fontSize, this.GetStringWidth(txtStr), this.fontSize, link, linkStr);
+				}
+			}
+			string str = s.String();
+			if (str.Length > 0) 
+			{
+				this._out(str);
+			}
+			this.lasth = h;
+			if (ln > 0) 
+			{
+				// Go to next line
+				this.y += h;
+				if (ln == 1) 
+				{
+					this.x = this.lMargin;
+				}
+			} 
+			else 
+			{
+				this.x += w;
+			}
+			return;
+		}
+
 		private int blankCount(string str)
 		{
 			int count = 0;
@@ -1321,6 +1608,7 @@ namespace FpdfCsharp
 			}
 			return count;
 		}
+
 		// Underline text
 		private string dounderline(double x, double y, string txt)
 		{

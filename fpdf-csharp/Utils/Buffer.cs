@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -34,6 +35,10 @@ namespace FpdfCsharp.Utils
             stream.Seek(0, SeekOrigin.End);
             stream.Write(data, 0, data.Length);
         }
+        public void Writef(string fmtStr, params object[] args)
+        {
+            Write(Encoding.Unicode.GetBytes(String.Format(CultureInfo.InvariantCulture, fmtStr, args)));
+        }
 
         public void WriteByte(byte data)
         {
@@ -46,7 +51,8 @@ namespace FpdfCsharp.Utils
             stream.Seek(0, SeekOrigin.End);
             writer.Write(data);
         }
-        
+
+             
         public override int Read()
         {
             return reader.Read();
@@ -54,8 +60,14 @@ namespace FpdfCsharp.Utils
 
         public override string ReadToEnd()
         {
-            return base.ReadToEnd();
+            return reader.ReadToEnd();
         }
+
+        public string String()
+        {
+            return ReadToEnd();
+        }
+
         public void ReadFrom(Buffer buf)
         {
             buf.Seek(0, SeekOrigin.Begin);
