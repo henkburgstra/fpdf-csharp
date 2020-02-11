@@ -37,7 +37,7 @@ namespace FpdfCsharp.Utils
         }
         public void Writef(string fmtStr, params object[] args)
         {
-            Write(Encoding.Unicode.GetBytes(String.Format(CultureInfo.InvariantCulture, fmtStr, args)));
+            Write(Encoding.Unicode.GetBytes(string.Format(CultureInfo.InvariantCulture, fmtStr, args)));
         }
 
         public void WriteByte(byte data)

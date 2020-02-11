@@ -1599,6 +1599,103 @@ namespace FpdfCsharp
 			return;
 		}
 
+		/// <summary>
+		/// Cell is a simpler version of CellFormat with no fill, border, links or
+		/// special alignment. The Cell_strikeout() example demonstrates this method.
+		/// </summary>
+		public void Cell(double w, double h, string txtStr)
+		{
+			this.CellFormat(w, h, txtStr, "", 0, "L", false, 0, "");
+		}
+
+		/// <summary>
+		/// Cellf is a simpler printf-style version of CellFormat with no fill, border,
+		/// links or special alignment. See documentation for the fmt package for
+		/// details on fmtStr and args.
+		/// </summary>
+		public void Cellf(double w, double h, string fmtStr, params object[] args) 
+		{
+			this.CellFormat(w, h, string.Format(fmtStr, args), "", 0, "L", false, 0, "");
+		}
+
+		/// <summary>
+		/// SplitLines splits text into several lines using the current font. Each line
+		/// has its length limited to a maximum width given by w. This function can be
+		/// used to determine the total height of wrapped text for vertical placement
+		/// purposes.
+		///
+		/// This method is useful for codepage-based fonts only. For UTF-8 encoded text,
+		/// use SplitText().
+		///
+		/// You can use MultiCell if you want to print a text on several lines in a
+		/// simple way.
+		/// </summary>
+		public List<string> SplitLines(string txt, double w)
+		{
+			// Function in original Go versiona contributed by Bruno Michel
+			var lines = new List<string>();
+			var cw = this.currentFont.Cw;
+			var wmax = (int)(Math.Ceiling((w - 2 * this.cMargin) * 1000 / this.fontSize));
+			var s = txt.Replace(@"\r", "");
+			var nb = s.Length;
+			while (nb > 0 && s[nb - 1] == '\n') 
+			{
+				nb--;
+			}
+			s = s.Substring(0, nb);
+			var sep = -1;
+			var i = 0;
+			var j = 0;
+			var l = 0;
+			while (i < nb) 
+			{
+				var c = s[i];
+				l += cw[c];
+				if (c == ' ' || c == '\t' || c == '\n') 
+				{
+					sep = i;
+				}
+				if (c == '\n' || l > wmax) 
+				{
+					if (sep == -1) 
+					{
+						if (i == j) 
+						{
+							i++;
+						}
+						sep = i;
+					} 
+					else 
+					{
+						i = sep + 1;
+					}
+					lines.Add(s.Substring(j, sep));
+					sep = -1;
+					j = i;
+					l = 0;
+				} 
+				else 
+				{
+					i++;
+				}
+			}
+			if (i != j) 
+			{
+				lines.Add(s.Substring(j, i));
+			}
+			return lines;
+		}
+
+		/// <summary>
+		/// Revert string to use in RTL languages
+		/// </summary>
+		private string reverseText(string text)
+		{
+			char[] arr = text.ToCharArray();
+			Array.Reverse(arr);
+			return new string(arr);
+		}
+
 		private int blankCount(string str)
 		{
 			int count = 0;
@@ -1699,18 +1796,6 @@ namespace FpdfCsharp
 			}
 			return w;
 		}
-
-
-		/// <summary>
-		/// Revert string to use in RTL languages
-		/// </summary>
-		private string reverseText(string text)
-		{
-			char[] arr = text.ToCharArray();
-			Array.Reverse(arr);
-			return new string(arr);
-		}
-
 
 		/// <summary>
 		/// PageNo returns the current page number.
