@@ -1971,6 +1971,145 @@ namespace FpdfCsharp
 		}
 
 		/// <summary>
+		/// write outputs text in flowing mode
+		/// </summary>
+		private void write(double h, string txtStr, int link, string linkStr)
+		{
+			// dbg("Write")
+			var cw = this.currentFont.Cw;
+			var w = this.w - this.rMargin - this.x;
+			var wmax = (w - 2 * this.cMargin) * 1000 / this.fontSize;
+			var s = txtStr.Replace("\r", "");
+			int nb = 0;
+	   		if (this.isCurrentUTF8) 
+			{
+				nb = s.Length;
+				if (nb == 1 && s == " ") 
+				{
+					this.x += this.GetStringWidth(s);
+					return;
+				}
+			}
+			else
+			{
+				nb = s.Length;
+	  		}
+			var sep = -1;
+			var i = 0;
+			var j = 0;
+			var l = 0.0;
+			var nl = 1;
+	   		while (i < nb) 
+			{
+				// Get next character
+				char c;
+				if (this.isCurrentUTF8) 
+				{
+					c = s[i];
+				}
+				else
+				{
+					c = s[i];
+	  			}
+				if (c == '\n') 
+				{
+					// Explicit line break
+					if (this.isCurrentUTF8) 
+					{
+						this.CellFormat(w, h, s.Substring(j, i), "", 2, "", false, link, linkStr);
+					} 
+					else 
+					{
+						this.CellFormat(w, h, s.Substring(j, i), "", 2, "", false, link, linkStr);
+					}
+					i++;
+					sep = -1;
+					j = i;
+					l = 0.0;
+					if (nl == 1) 
+					{
+						this.x = this.lMargin;
+						w = this.w - this.rMargin - this.x;
+						wmax = (w - 2 * this.cMargin) * 1000 / this.fontSize;
+					}
+					nl++;
+					continue;
+				}
+				if (c == ' ') 
+				{
+					sep = i;
+				}
+				l += (double)(cw[c]);
+				if (l > wmax) 
+				{
+					// Automatic line break
+					if (sep == -1) 
+					{
+						if (this.x > this.lMargin) 
+						{
+							// Move to next line
+							this.x = this.lMargin;
+							this.y += h;
+							w = this.w - this.rMargin - this.x;
+							wmax = (w - 2 * this.cMargin) * 1000 / this.fontSize;
+							i++;
+							nl++;
+							continue;
+						}
+						if (i == j) 
+						{
+							i++;
+						}
+						if (this.isCurrentUTF8) 
+						{
+							this.CellFormat(w, h, s.Substring(j, i), "", 2, "", false, link, linkStr);
+						} 
+						else 
+						{
+							this.CellFormat(w, h, s.Substring(j, i), "", 2, "", false, link, linkStr);
+						}
+					} 
+					else 
+					{
+						if (this.isCurrentUTF8) 
+						{
+							this.CellFormat(w, h, s.Substring(j, sep), "", 2, "", false, link, linkStr);
+						} else {
+							this.CellFormat(w, h, s.Substring(j, sep), "", 2, "", false, link, linkStr);
+						}
+						i = sep + 1;
+					}
+					sep = -1;
+					j = i;
+					l = 0.0;
+					if (nl == 1) 
+					{
+						this.x = this.lMargin;
+						w = this.w - this.rMargin - this.x;
+						wmax = (w - 2 * this.cMargin) * 1000 / this.fontSize;
+					}
+					nl++;
+				} 
+				else 
+				{
+					i++;
+				}
+			}
+			// Last chunk
+			if (i != j) 
+			{
+				if (this.isCurrentUTF8) 
+				{
+					this.CellFormat(l / 1000 * this.fontSize, h, s.Substring(j), "", 0, "", false, link, linkStr);
+				} 
+				else 
+				{
+					this.CellFormat(l / 1000 * this.fontSize, h, s.Substring(j), "", 0, "", false, link, linkStr);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Revert string to use in RTL languages
 		/// </summary>
 		private string reverseText(string text)
