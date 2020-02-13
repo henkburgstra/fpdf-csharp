@@ -1905,7 +1905,7 @@ namespace FpdfCsharp
 						{
 							if (ns > 1) 
 							{
-								this.ws = (double)((wmax - ls) / 1000) * this.fontSize / (double)(ns - 1)
+								this.ws = (double)((wmax - ls) / 1000) * this.fontSize / (double)(ns - 1);
 							}
 							else
 							{
@@ -1988,6 +1988,16 @@ namespace FpdfCsharp
 				if (Char.IsWhiteSpace(c)) count++;
 			}
 			return count;
+		}
+
+		private bool isChinese(char c)
+		{
+			// chinese unicode: 4e00-9fa5
+			if (c >= 0x4e00 && c <= 0x9fa5)
+			{
+				return true;
+			}
+			return false;
 		}
 
 		// Underline text
