@@ -1687,6 +1687,290 @@ namespace FpdfCsharp
 		}
 
 		/// <summary>
+		/// MultiCell supports printing text with line breaks. They can be automatic (as
+		/// soon as the text reaches the right border of the cell) or explicit (via the
+		/// \n character). As many cells as necessary are output, one below the other.
+		///
+		/// Text can be aligned, centered or justified. The cell block can be framed and
+		/// the background painted. See CellFormat() for more details.
+		///
+		/// The current position after calling MultiCell() is the beginning of the next
+		/// line, equivalent to calling CellFormat with ln equal to 1.
+		///
+		/// Note: this method has a known bug that treats UTF-8 fonts differently than
+		/// non-UTF-8 fonts. With UTF-8 fonts, all trailing newlines in txtStr are
+		/// removed. With a non-UTF-8 font, if txtStr has one or more trailing newlines,
+		/// only the last is removed. In the next major module version, the UTF-8 logic
+		/// will be changed to match the non-UTF-8 logic. To prepare for that change,
+		/// applications that use UTF-8 fonts and depend on having all trailing newlines
+		/// removed should call strings.TrimRight(txtStr, "\r\n") before calling this
+		/// method.
+		/// </summary>
+		/// <param name="w">
+		/// w is the width of the cells. A value of zero indicates cells that reach to
+		/// the right margin.
+		/// </param>
+		/// <param name="h">
+		/// h indicates the line height of each cell in the unit of measure specified in New().
+		/// </param>
+		/// <param name="txtStr"></param>
+		/// <param name="borderStr"></param>
+		/// <param name="alignStr"></param>
+		/// <param name="fill"></param>
+		public void MultiCell(double w, double h, string txtStr, string borderStr, string alignStr, bool fill)
+		{
+			if (this.err != null) 
+			{
+				return;
+			}
+			// dbg("MultiCell")
+			if (alignStr == "") 
+			{
+				alignStr = "J";
+			}
+			var cw = this.currentFont.Cw;
+	   		if (w == 0) 
+			{
+				w = this.w - this.rMargin - this.x;
+			}
+			var wmax = (int)(Math.Ceiling((w - 2 * this.cMargin) * 1000 / this.fontSize));
+			var s = txtStr.Replace(@"\r", "");
+			var srune = s;
+
+			// remove extra line breaks
+			int nb;
+	   		if (this.isCurrentUTF8) 
+			{
+				nb = srune.Length;
+				while (nb > 0 && srune[nb - 1] == '\n') 
+				{
+					nb--;
+				}
+				srune = srune.Substring(0, nb);
+			}
+			else
+			{
+				nb = s.Length;
+				var bytes2 = s;
+	  
+				// for nb > 0 && bytes2[nb-1] == '\n' {
+
+				// Prior to August 2019, if s ended with a newline, this code stripped it.
+				// After that date, to be compatible with the UTF-8 code above, *all*
+				// trailing newlines were removed. Because this regression caused at least
+				// one application to break (see issue #333), the original behavior has been
+				// reinstated with a caveat included in the documentation.
+				if (nb > 0 && bytes2[nb - 1] == '\n') 
+				{
+					nb--;
+				}
+				s = s.Substring(0, nb);
+	  		}
+			// dbg("[%s]\n", s)
+			var b = "0";
+			var b2 = "";
+	   		if (borderStr.Length > 0) 
+			{
+				if (borderStr == "1") 
+				{
+					borderStr = "LTRB";
+					b = "LRT";
+					b2 = "LR";
+				}
+				else
+				{
+					b2 = "";
+	  				if (borderStr.Contains(borderStr)) 
+					{
+						b2 += "L";
+					}
+					if (borderStr.Contains("R")) 
+					{
+						b2 += "R";
+					}
+					if (borderStr.Contains("T")) 
+					{
+						b = b2 + "T";
+					}
+					else
+					{
+						b = b2;
+	  				}
+				}
+			}
+			var sep = -1;
+			var i = 0;
+			var j = 0;
+			var l = 0;
+			var ls = 0;
+			var ns = 0;
+			var nl = 1;
+	   		while (i < nb) 
+			{
+				// Get next character
+				char c;
+				if (this.isCurrentUTF8) 
+				{
+					c = srune[i];
+				}
+				else
+				{
+					c = s[i];
+	  			}
+				if (c == '\n') 
+				{
+					// Explicit line break
+					if (this.ws > 0) 
+					{
+						this.ws = 0;
+						this._out("0 Tw");
+					}
+
+					if (this.isCurrentUTF8) 
+					{
+						var newAlignStr = alignStr;
+						if (newAlignStr == "J") 
+						{
+							if (this.isRTL) 
+							{
+								newAlignStr = "R";
+							}
+							else
+							{
+								newAlignStr = "L";
+	  						}
+						}
+						this.CellFormat(w, h, srune.Substring(j, i), b, 2, newAlignStr, fill, 0, "");
+					}
+					else
+					{
+						this.CellFormat(w, h, s.Substring(j, i), b, 2, alignStr, fill, 0, "");
+	  				}
+					i++;
+					sep = -1;
+					j = i;
+					l = 0;
+					ns = 0;
+					nl++;
+					if (borderStr.Length > 0 && nl == 2) 
+					{
+						b = b2;
+					}
+					continue;
+				}
+				if (c == ' ' || isChinese(c)) 
+				{
+					sep = i;
+					ls = l;
+					ns++;
+				}
+				if (c >= cw.Length) 
+				{
+					this.err = new PdfError($"character outside the supported range: {c}");
+					return;
+				}
+				if (cw[c] == 0)  //Marker width 0 used for missing symbols 
+				{
+					l += this.currentFont.Desc.MissingWidth;
+				}
+				else if (cw[c] != 65535) //Marker width 65535 used for zero width symbols 
+				{
+					l += cw[c];
+	  			}
+				if (l > wmax) 
+				{
+					// Automatic line break
+					if (sep == -1) 
+					{
+						if (i == j) 
+						{
+							i++;
+						}
+						if (this.ws > 0) 
+						{
+							this.ws = 0;
+							this._out("0 Tw");
+						}
+						if (this.isCurrentUTF8) {
+							this.CellFormat(w, h, srune.Substring(j, i), b, 2, alignStr, fill, 0, "");
+						}
+						else
+						{
+							this.CellFormat(w, h, s.Substring(j, i), b, 2, alignStr, fill, 0, "");
+	  					}
+					}
+					else
+					{
+						if (alignStr == "J") 
+						{
+							if (ns > 1) 
+							{
+								this.ws = (double)((wmax - ls) / 1000) * this.fontSize / (double)(ns - 1)
+							}
+							else
+							{
+								this.ws = 0;
+	  						}
+							this.outf("{0:F3} Tw", this.ws * this.k);
+						}
+						if (this.isCurrentUTF8) 
+						{
+							this.CellFormat(w, h, srune.Substring(j, sep), b, 2, alignStr, fill, 0, "");
+						}
+						else
+						{
+							this.CellFormat(w, h, s.Substring(j, sep), b, 2, alignStr, fill, 0, "");
+	  					}
+						i = sep + 1;
+	  				}
+					sep = -1;
+					j = i;
+					l = 0;
+					ns = 0;
+					nl++;
+					if (borderStr.Length > 0 && nl == 2) 
+					{
+						b = b2;
+					}
+				}
+				else
+				{
+					i++;
+	  			}
+			}
+			// Last chunk
+			if (this.ws > 0) 
+			{
+				this.ws = 0;
+				this._out("0 Tw");
+			}
+			if (borderStr.Length > 0 && borderStr.Contains("B")) 
+			{
+				b += "B";
+			}
+			if (this.isCurrentUTF8) 
+			{
+				if (alignStr == "J") 
+				{
+					if (this.isRTL) 
+					{
+						alignStr = "R";
+					}
+					else
+					{
+						alignStr = "";
+	  				}
+				}
+				this.CellFormat(w, h, srune.Substring(j, i), b, 2, alignStr, fill, 0, "");
+			}
+			else
+			{
+				this.CellFormat(w, h, s.Substring(j, i), b, 2, alignStr, fill, 0, "");
+	  		}
+			this.x = this.lMargin;
+		}
+
+		/// <summary>
 		/// Revert string to use in RTL languages
 		/// </summary>
 		private string reverseText(string text)
