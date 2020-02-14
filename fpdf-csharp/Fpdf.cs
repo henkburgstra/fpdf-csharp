@@ -204,7 +204,7 @@ namespace FpdfCsharp
 		/// SetAutoPageBreak() method.
 		/// </summary>
 		/// <returns>(left margin, top margin, right margin, bottom margin)</returns>
-		public (double, double, double, double) GetMargins()
+		public (double lMargin, double tMargin, double rMargin, double bMargin) GetMargins()
 		{
 			return (lMargin, tMargin, rMargin, bMargin);
 		}
@@ -2105,6 +2105,115 @@ namespace FpdfCsharp
 				else 
 				{
 					this.CellFormat(l / 1000 * this.fontSize, h, s.Substring(j), "", 0, "", false, link, linkStr);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Write prints text from the current position. When the right margin is
+		/// reached (or the \n character is met) a line break occurs and text continues
+		/// from the left margin. Upon method exit, the current position is left just at
+		/// the end of the text.
+		///
+		/// It is possible to put a link on the text.
+		/// </summary>
+		/// <param name="h">h indicates the line height in the unit of measure specified in New().</param>
+		/// <param name="txtStr">The text to be printed</param>
+		public void Write(double h, string txtStr)
+		{
+			this.write(h, txtStr, 0, "");
+		}
+
+		/// <summary>
+		/// Writef is like Write but uses printf-style formatting. See the documentation
+		/// for package fmt for more details on fmtStr and args.
+		/// </summary>
+		public void Writef(double h, string fmtStr, params object[] args) 
+		{
+			this.write(h, string.Format(fmtStr, args), 0, "");
+		}
+
+		/// <summary>
+		/// WriteLinkString writes text that when clicked launches an external URL. See
+		/// Write() for argument details.
+		/// </summary>
+		public void WriteLinkString(double h, string displayStr, string targetStr)
+		{
+			this.write(h, displayStr, 0, targetStr);
+		}
+
+		/// <summary>
+		/// WriteLinkID writes text that when clicked jumps to another location in the
+		/// PDF. linkID is an identifier returned by AddLink(). See Write() for argument
+		/// details.
+		/// </summary>
+		public void WriteLinkID(double h, string displayStr, int linkID)
+		{
+			this.write(h, displayStr, linkID, "");
+		}
+
+		/// <summary>
+		/// WriteAligned is an implementation of Write that makes it possible to align
+		/// text.
+		/// </summary>
+		/// <param name="width">
+		/// width indicates the width of the box the text will be drawn in. This is in
+		/// the unit of measure specified in New(). If it is set to 0, the bounding box
+		/// of the page will be taken (pageWidth - leftMargin - rightMargin).
+		/// </param>
+		/// <param name="lineHeight">
+		/// lineHeight indicates the line height in the unit of measure specified in
+		/// New().
+		/// </param>
+		/// <param name="textStr">The text to be written</param>
+		/// <param name="alignStr">
+		/// alignStr sees to horizontal alignment of the given textStr. The options are
+		/// "L", "C" and "R" (Left, Center, Right). The default is "L".
+		/// </param>
+		public void WriteAligned(double width, double lineHeight, string textStr, string alignStr)
+		{
+			(double lMargin,  _, double rMargin, _) = this.GetMargins();
+			(double pageWidth, _) = this.GetPageSize();
+	   		if (width == 0) 
+			{
+				width = pageWidth - (lMargin + rMargin);
+			}
+
+			List<string> lines = new List<string>();
+	   
+			if (this.isCurrentUTF8) 
+			{
+				lines = this.SplitText(textStr, width);
+			}
+			else
+			{
+				foreach (var line in this.SplitLines(textStr, width))
+				{
+					lines.Add(line);
+				}
+			}
+
+			foreach (var lineStr in lines) 
+			{
+				var lineWidth = this.GetStringWidth(lineStr);
+		
+				switch (alignStr) 
+				{
+					case "C":
+						this.SetLeftMargin(lMargin + ((width - lineWidth) / 2));
+						this.Write(lineHeight, lineStr);
+						this.SetLeftMargin(lMargin);
+						break;
+					case "R":
+						this.SetLeftMargin(lMargin + (width - lineWidth) - 2.01 * this.cMargin);
+						this.Write(lineHeight, lineStr);
+						this.SetLeftMargin(lMargin);
+						break;
+					default:
+						this.SetRightMargin(pageWidth - lMargin - width);
+						this.Write(lineHeight, lineStr);
+						this.SetRightMargin(rMargin);
+						break;
 				}
 			}
 		}
