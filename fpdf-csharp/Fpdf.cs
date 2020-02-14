@@ -2219,6 +2219,52 @@ namespace FpdfCsharp
 		}
 
 		/// <summary>
+		/// Ln performs a line break. The current abscissa goes back to the left margin
+		/// and the ordinate increases by the amount passed in parameter. A negative
+		/// value of h indicates the height of the last printed cell.
+		///
+		/// This method is demonstrated in the example for MultiCell.
+		/// </summary>
+		public void Ln(double h)
+		{
+			this.x = this.lMargin;
+	   		if (h < 0) 
+			{
+				this.y += this.lasth;
+			}
+			else
+			{
+				this.y += h;
+	  		}
+		}
+
+
+		/// <summary>
+		/// ImageTypeFromMime returns the image type used in various image-related
+		/// functions (for example, Image()) that is associated with the specified MIME
+		/// type. For example, "jpg" is returned if mimeStr is "image/jpeg". An error is
+		/// set if the specified MIME type is not supported.
+		/// </summary>
+		public string ImageTypeFromMime(string mimeStr) 
+		{
+			switch (mimeStr) 
+			{
+				case "image/png":
+					return "png";
+				case "image/jpg":
+					return "jpg";
+				case "image/jpeg":
+					return "jpg";
+				case "image/gif":
+					return "gif";
+				default:
+					this.SetErrorf("unsupported image type: {0}", mimeStr);
+					return "";
+			}
+		}
+
+
+		/// <summary>
 		/// SplitText splits UTF-8 encoded text into several lines using the current
 		/// font. Each line has its length limited to a maximum width given by w. This
 		/// function can be used to determine the total height of wrapped text for
