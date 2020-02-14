@@ -2219,6 +2219,67 @@ namespace FpdfCsharp
 		}
 
 		/// <summary>
+		/// SplitText splits UTF-8 encoded text into several lines using the current
+		/// font. Each line has its length limited to a maximum width given by w. This
+		/// function can be used to determine the total height of wrapped text for
+		/// vertical placement purposes.
+		/// </summary>
+		public List<string> SplitText(string txt, double w) 
+		{
+			var lines = new List<string>();
+			var cw = this.currentFont.Cw;
+			var wmax = (int)(Math.Ceiling((w - 2 * this.cMargin) * 1000 / this.fontSize));
+			var s = txt; // Return slice of UTF-8 runes
+			var nb = s.Length;
+			while (nb > 0 && s[nb - 1] == '\n') 
+			{
+				nb--;
+			}
+			s = s.Substring(0, nb);
+			var sep = -1;
+			var i = 0;
+			var j = 0;
+			var l = 0;
+			while (i < nb) 
+			{
+				var c = s[i];
+				l += cw[c];
+				if (Char.IsWhiteSpace(c) || isChinese(c))
+				{
+					sep = i;
+				}
+				if (c == '\n' || l > wmax) 
+				{
+					if (sep == -1) 
+					{
+						if (i == j) 
+						{
+							i++;
+						}
+						sep = i;
+					} 
+					else 
+					{
+						i = sep + 1;
+					}
+					lines.Add(s.Substring(j, sep));
+					sep = -1;
+					j = i;
+					l = 0;
+				} 
+				else 
+				{
+					i++;
+				}
+			}
+			if (i != j) 
+			{
+				lines.Add(s.Substring(j, i));
+			}
+			return lines;
+		}
+
+		/// <summary>
 		/// Revert string to use in RTL languages
 		/// </summary>
 		private string reverseText(string text)
